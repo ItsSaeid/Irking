@@ -158,5 +158,4 @@ async def shop(ctx):
     await ctx.send(embed=main_embed, view=view)
 
 
-bot.run(
-    "MTQzODU5MzY1NzM5NjY2MjQ2Mw.G52AOm.a7IIog649GBRMwJE4QN0vT7q_U_2qQxfj0vIL8")
+bot.run(os.getenv("TOKEN"))
