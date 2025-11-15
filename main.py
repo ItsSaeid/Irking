@@ -159,4 +159,4 @@ async def shop(ctx):
 
 
 bot.run(
-    "MTQzODU5MzY1NzM5NjY2MjQ2Mw.GyX9Wr.EzeGn1Z07iLZhF95smdbzWyzcEcoDWu3-Qcf-U")
+    "MTQzODU5MzY1NzM5NjY2MjQ2Mw.G52AOm.a7IIog649GBRMwJE4QN0vT7q_U_2qQxfj0vIL8")
