@@ -15,7 +15,7 @@ intents.guilds = True
 bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
 
 # ==================== تنظیمات سیستم تیکت ====================
-TICKET_CATEGORY_NAME = "open tickets"
+TICKET_CATEGORY_NAME = "TICKETS"
 LOG_CHANNEL_ID = 1445905705323335680
 TRANSCRIPT_CHANNEL_ID = 1445905705323335680
 STAFF_ROLE_ID = 0  # آیدی رول استاف
