@@ -1,9 +1,10 @@
 # main.py
 import discord
 from discord.ext import commands, tasks
-from discord.ui import Select, View
+from discord.ui import Select, View, Button  # ← اینجا Button اضافه شد
 from datetime import datetime, timedelta
 import asyncio
+import io
 import os
 
 intents = discord.Intents.default()
