@@ -29,7 +29,7 @@ async def status_changer():
     while not bot.is_closed():
         for activity, status in statuses:
             await bot.change_presence(activity=activity, status=status)
-            await asyncio.sleep(22)
+            await asyncio.sleep(2)
 
 
 # -------------------- تایمر وایپ (دوشنبه و پنج‌شنبه ساعت 14:00 = 2 ظهر) --------------------
