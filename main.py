@@ -9,28 +9,6 @@ from collections import deque
 from datetime import datetime, timedelta
 import os
 
-@bot.command(name="connect")
-async def connect(ctx):
-    if not ctx.author.voice:
-        return await ctx.send("تو باید تو یه ویس چنل باشی تا منو بیاری!")
-
-    channel = ctx.author.voice.channel
-
-    if ctx.guild.voice_client:
-        await ctx.guild.voice_client.move_to(channel)
-    else:
-        await channel.connect(reconnect=True, timeout=600)
-
-    await ctx.send(f"وارد **{channel.name}** شدم و 24 ساعته اینجام تا کی حال کنی!")
-
-    # استریم خالی برای اینکه هیچوقت قطع نشه (حتی اگه همه برن)
-    if not ctx.guild.voice_client.is_playing():
-        ctx.guild.voice_client.play(
-            discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(SILENT_STREAM, **ffmpeg_options)),
-            after=lambda e: None
-        )
-        ctx.guild.voice_client.source.volume = 0.0  # کاملاً بی‌صدا
-
 # ==================== تنظیمات اولیه ====================
 intents = discord.Intents.default()
 intents.message_content = True
