@@ -1,4 +1,4 @@
-# main.py — کامل‌ترین بات Rust ایران (IRking 10X) + !connect 24 ساعته
+# main.py — کامل‌ترین بات Rust ایران (IRking 10X) | 100% کار می‌کنه در Railway
 import discord
 from discord import app_commands
 from discord.ext import commands, tasks
@@ -35,9 +35,6 @@ ffmpeg_options = {
     'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
     'options': '-vn -filter:a "volume=0.5"'
 }
-
-# لینک استریم خالی برای 24 ساعته ماندن تو ویس (بدون صدا)
-SILENT_STREAM = "http://icecast.qmusic.nl/qmusic.mp3"
 
 class YTDLSource(discord.PCMVolumeTransformer):
     def __init__(self, source, *, data, volume=0.5):
@@ -115,58 +112,83 @@ async def developer(ctx, member: discord.Member = None):
         await member.add_roles(role)
         await ctx.send(f"بج Developer به {member.mention} داده شد!")
 
-# ==================== دستور !connect 24 ساعته ====================
-@bot.command(name="connect")
-async def connect(ctx):
-    if not ctx.author.voice:
-        return await ctx.send("تو باید تو یه ویس چنل باشی تا منو بیاری!")
-
-    channel = ctx.author.voice.channel
-
-    if ctx.guild.voice_client:
-        await ctx.guild.voice_client.move_to(channel)
-    else:
-        await channel.connect(reconnect=True, timeout=600)
-
-    await ctx.send(f"وارد **{channel.name}** شدم و 24 ساعته اینجام تا کی حال کنی!")
-
-    # استریم خالی برای اینکه هیچوقت قطع نشه (حتی اگه همه برن)
-    if not ctx.guild.voice_client.is_playing():
-        ctx.guild.voice_client.play(
-            discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(SILENT_STREAM, **ffmpeg_options)),
-            after=lambda e: None
-        )
-        ctx.guild.voice_client.source.volume = 0.0  # کاملاً بی‌صدا
-
-# ==================== دستور !shop کامل و بدون ارور ====================
+# ==================== دستور !shop کامل و بدون هیچ اروری ====================
 @bot.command()
 async def shop(ctx):
     select = Select(
         placeholder="رنک مورد نظرت رو انتخاب کن...",
         options=[
-            discord.SelectOption(label="Legendary", value="legendary", emoji="Trophy", description="ماه 360k | هفته 100k"),
-            discord.SelectOption(label="Elite Commander", value="elite", emoji="Gem", description="ماه 480k | هفته 120k"),
-            discord.SelectOption(label="GameMaster", value="gamemaster", emoji="Crown", description="ماه 640k | هفته 155k"),
-            discord.SelectOption(label="Overlord", value="overlord", emoji="Diamond", description="ماه 800k | هفته 200k"),
+            discord.SelectOption(label="Legendary", value="legendary", emoji="🏆", description="ماه 360k | هفته 100k"),
+            discord.SelectOption(label="Elite Commander", value="elite", emoji="💠", description="ماه 480k | هفته 120k"),
+            discord.SelectOption(label="GameMaster", value="gamemaster", emoji="👑", description="ماه 640k | هفته 155k"),
+            discord.SelectOption(label="Overlord", value="overlord", emoji="💎", description="ماه 800k | هفته 200k"),
         ]
     )
 
     async def callback(interaction):
         choice = interaction.data['values'][0]
         ranks = {
-            "legendary": {"title": "رنک Legendary Trophy", "color": 0x00ff00, "price30": "360,000 تومان", "price7": "100,000 تومان",
+            "legendary": {
+                "title": "رنک Legendary 🏆",
+                "color": 0x00ff00,
+                "price30": "360,000 تومان",
+                "price7": "100,000 تومان",
                 "perks": "• روشن کردن تورت\n• کیت مخصوص\n• افزایش سرعت آپگرید\n• mymini / myheli بدون کولداون\n• no cold & hot\n• reward بیشتر\n• بک‌پک بزرگتر",
-                "images": ["https://uploadkon.ir/uploads/dc8014_25Rust-11-14-2025-5-26-43-PM.png","https://uploadkon.ir/uploads/ca9c14_25Rust-11-14-2025-5-26-48-PM.png","https://uploadkon.ir/uploads/a05314_25Rust-11-14-2025-5-27-09-PM.png","https://uploadkon.ir/uploads/b4f414_25Rust-11-14-2025-5-27-14-PM.png","https://uploadkon.ir/uploads/c5ef14_25Rust-11-14-2025-5-27-18-PM.png","https://uploadkon.ir/uploads/06b714_25Rust-11-14-2025-5-27-23-PM.png"]},
-            "elite": {"title": "رنک Elite Commander Gem", "color": 0x00ffff, "price30": "480,000 تومان", "price7": "120,000 تومان",
+                "images": [
+                    "https://uploadkon.ir/uploads/dc8014_25Rust-11-14-2025-5-26-43-PM.png",
+                    "https://uploadkon.ir/uploads/ca9c14_25Rust-11-14-2025-5-26-48-PM.png",
+                    "https://uploadkon.ir/uploads/a05314_25Rust-11-14-2025-5-27-09-PM.png",
+                    "https://uploadkon.ir/uploads/b4f414_25Rust-11-14-2025-5-27-14-PM.png",
+                    "https://uploadkon.ir/uploads/c5ef14_25Rust-11-14-2025-5-27-18-PM.png",
+                    "https://uploadkon.ir/uploads/06b714_25Rust-11-14-2025-5-27-23-PM.png"
+                ]
+            },
+            "elite": {
+                "title": "رنک Elite Commander 💠",
+                "color": 0x00ffff,
+                "price30": "480,000 تومان",
+                "price7": "120,000 تومان",
                 "perks": "• همه مزایای Legendary\n• کیت قوی‌تر\n• /back و /craft\n• هلیکوپتر شخصی\n• برداشت سنگ پخته",
-                "images": ["https://uploadkon.ir/uploads/b20714_25Rust-11-14-2025-5-26-05-PM.png","https://uploadkon.ir/uploads/a4c214_25Rust-11-14-2025-5-26-11-PM.png","https://uploadkon.ir/uploads/b67f14_25Rust-11-14-2025-5-26-15-PM.png","https://uploadkon.ir/uploads/b41614_25Rust-11-14-2025-5-26-20-PM.png","https://uploadkon.ir/uploads/d98014_25Rust-11-14-2025-5-26-25-PM.png"]},
-            "gamemaster": {"title": "رنک GameMaster Crown", "color": 0xffff00, "price30": "640,000 تومان", "price7": "155,000 تومان",
+                "images": [
+                    "https://uploadkon.ir/uploads/b20714_25Rust-11-14-2025-5-26-05-PM.png",
+                    "https://uploadkon.ir/uploads/a4c214_25Rust-11-14-2025-5-26-11-PM.png",
+                    "https://uploadkon.ir/uploads/b67f14_25Rust-11-14-2025-5-26-15-PM.png",
+                    "https://uploadkon.ir/uploads/b41614_25Rust-11-14-2025-5-26-20-PM.png",
+                    "https://uploadkon.ir/uploads/d98014_25Rust-11-14-2025-5-26-25-PM.png"
+                ]
+            },
+            "gamemaster": {
+                "title": "رنک GameMaster 👑",
+                "color": 0xffff00,
+                "price30": "640,000 تومان",
+                "price7": "155,000 تومان",
                 "perks": "• همه مزایای Elite\n• بدون کولداون کیت\n• No Radiation & No Bleeding\n• هلیکوپتر و مینی دائمی",
-                "images": ["https://uploadkon.ir/uploads/420914_25Rust-11-14-2025-5-29-54-PM.png","https://uploadkon.ir/uploads/28fd14_25Rust-11-14-2025-5-29-58-PM.png","https://uploadkon.ir/uploads/3c7b14_25Rust-11-14-2025-5-30-04-PM.png","https://uploadkon.ir/uploads/af5614_25Rust-11-14-2025-5-30-07-PM.png","https://uploadkon.ir/uploads/245514_25Rust-11-14-2025-5-30-25-PM.png","https://uploadkon.ir/uploads/1c6714_25Rust-11-14-2025-5-30-30-PM.png"]},
-            "overlord": {"title": "رنک Overlord Diamond", "color": 0xff00ff, "price30": "800,000 تومان", "price7": "200,000 تومان",
+                "images": [
+                    "https://uploadkon.ir/uploads/420914_25Rust-11-14-2025-5-29-54-PM.png",
+                    "https://uploadkon.ir/uploads/28fd14_25Rust-11-14-2025-5-29-58-PM.png",
+                    "https://uploadkon.ir/uploads/3c7b14_25Rust-11-14-2025-5-30-04-PM.png",
+                    "https://uploadkon.ir/uploads/af5614_25Rust-11-14-2025-5-30-07-PM.png",
+                    "https://uploadkon.ir/uploads/245514_25Rust-11-14-2025-5-30-25-PM.png",
+                    "https://uploadkon.ir/uploads/1c6714_25Rust-11-14-2025-5-30-30-PM.png"
+                ]
+            },
+            "overlord": {
+                "title": "رنک Overlord 💎",
+                "color": 0xff00ff,
+                "price30": "800,000 تومان",
+                "price7": "200,000 تومان",
                 "perks": "• همه چیز + نقش اختصاصی\n• تبلیغ دائمی سرور\n• دسترسی کامل ادمین\n• کیت اختصاصی دائمی",
-                "images": ["https://uploadkon.ir/uploads/603114_25Rust-11-14-2025-5-30-41-PM.png","https://uploadkon.ir/uploads/668c14_25Rust-11-14-2025-5-30-45-PM.png","https://uploadkon.ir/uploads/420614_25Rust-11-14-2025-5-30-51-PM.png","https://uploadkon.ir/uploads/b43c14_25Rust-11-14-2025-5-30-54-PM.png","https://uploadkon.ir/uploads/042d14_25Rust-11-14-2025-5-30-58-PM.png","https://uploadkon.ir/uploads/c20214_25Rust-11-14-2025-5-31-02-PM.png"]}
+                "images": [
+                    "https://uploadkon.ir/uploads/603114_25Rust-11-14-2025-5-30-41-PM.png",
+                    "https://uploadkon.ir/uploads/668c14_25Rust-11-14-2025-5-30-45-PM.png",
+                    "https://uploadkon.ir/uploads/420614_25Rust-11-14-2025-5-30-51-PM.png",
+                    "https://uploadkon.ir/uploads/b43c14_25Rust-11-14-2025-5-30-54-PM.png",
+                    "https://uploadkon.ir/uploads/042d14_25Rust-11-14-2025-5-30-58-PM.png",
+                    "https://uploadkon.ir/uploads/c20214_25Rust-11-14-2025-5-31-02-PM.png"
+                ]
+            }
         }
+
         data = ranks[choice]
         embed = discord.Embed(title=data["title"], color=data["color"])
         embed.add_field(name="۳۰ روز", value=data["price30"], inline=True)
@@ -175,6 +197,7 @@ async def shop(ctx):
         embed.set_image(url=data["images"][0])
         embed.set_footer(text=f"عکس ۱ از {len(data['images'])} • برای خرید تیکت بزن")
         await interaction.response.send_message(embed=embed, ephemeral=True)
+
         for i in range(1, len(data["images"])):
             emb = discord.Embed(color=data["color"])
             emb.set_image(url=data["images"][i])
@@ -184,11 +207,13 @@ async def shop(ctx):
     select.callback = callback
     view = View(timeout=None)
     view.add_item(select)
+
     main_embed = discord.Embed(title="فروشگاه رنک IRking 10X", description="رنک مورد نظرت رو انتخاب کن:", color=0xff9900)
     main_embed.set_thumbnail(url="https://uploadkon.ir/uploads/f8c114_256b0e13495ed97b05b29e3481ef68f708.png")
     await ctx.send(embed=main_embed, view=view)
 
 # ==================== دستورات موزیک (اسلش) ====================
+
 @tree.command(name="join", description="بات وارد ویس چنل میشه")
 async def join(interaction: discord.Interaction):
     if not interaction.user.voice:
@@ -218,13 +243,6 @@ async def play(interaction: discord.Interaction, query: str):
         if not interaction.user.voice:
             return await interaction.followup.send("اول باید تو ویس باشی!", ephemeral=True)
         await interaction.user.voice.channel.connect()
-        # بعد از جوین، استریم خالی رو هم فعال کن تا قطع نشه
-        if not interaction.guild.voice_client.is_playing():
-            interaction.guild.voice_client.play(
-                discord.PCMVolumeTransformer(discord.FFmpegPCMAudio(SILENT_STREAM, **ffmpeg_options)),
-                after=lambda e: None
-            )
-            interaction.guild.voice_client.source.volume = 0.0
 
     guild_id = interaction.guild.id
     if guild_id not in music_queues:
@@ -233,12 +251,12 @@ async def play(interaction: discord.Interaction, query: str):
     music_queues[guild_id].append(query)
     await interaction.followup.send(f"به صف اضافه شد: **{query}**")
 
-    if not interaction.guild.voice_client.is_playing() or interaction.guild.voice_client.source.volume == 0.0:
+    if not interaction.guild.voice_client.is_playing():
         play_next(interaction)
 
 @tree.command(name="skip", description="آهنگ فعلی رو اسکیپ کن")
 async def skip(interaction: discord.Interaction):
-    if interaction.guild.voice_client and interaction.guild.voice_client.is_playing() and interaction.guild.voice_client.source.volume > 0:
+    if interaction.guild.voice_client and interaction.guild.voice_client.is_playing():
         interaction.guild.voice_client.stop()
         await interaction.response.send_message("اسکیپ شد!")
     else:
@@ -269,6 +287,7 @@ async def queue_cmd(interaction: discord.Interaction):
     await interaction.response.send_message(f"**صف موزیک:**\n{songs}")
 
 # ==================== وضعیت چرخشی + تایمر وایپ ====================
+
 async def status_loop():
     await bot.wait_until_ready()
     while not bot.is_closed():
@@ -281,7 +300,7 @@ async def status_loop():
 async def wipe_announcer():
     now = datetime.now() + timedelta(hours=3, minutes=30)
     if now.weekday() in [0, 3] and now.hour == 14 and now.minute < 3:
-        channel = bot.get_channel(1294698730834989128)  # ← ID چنل اعلانات
+        channel = bot.get_channel(1294698730834989128)  # ← اینجا ID چنل اعلانات رو بذار
         if channel:
             embed = discord.Embed(title="WIPE سرور وایپ شد!", color=0xff0000)
             embed.add_field(name="اتصال", value="`connect irkings.top`", inline=False)
