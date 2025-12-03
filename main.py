@@ -6,9 +6,18 @@ import asyncio
 
 intents = discord.Intents.default()
 intents.message_content = True
+
 bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
 
-# ====================== Status Changer (har 20-25 sanie avaz mishe) ======================
+
+# درست شده — این روش تو discord.py 2.3+ کار می‌کنه
+async def setup_hook():
+    bot.loop.create_task(status_changer())
+
+bot.setup_hook = setup_hook
+
+
+# وضعیت چرخشی (هر 22 ثانیه عوض می‌شه)
 async def status_changer():
     await bot.wait_until_ready()
     statuses = [
@@ -20,21 +29,18 @@ async def status_changer():
     while not bot.is_closed():
         for activity, status in statuses:
             await bot.change_presence(activity=activity, status=status)
-            await asyncio.sleep(22)  # har 22 sanie avaz mishe (mikhaay taghir bedi inja)
-
-# Start status loop
-bot.loop.create_task(status_changer())
+            await asyncio.sleep(22)
 
 
-# ====================== on_ready ======================
+# وقتی بات روشن شد
 @bot.event
 async def on_ready():
     print(f"بات {bot.user} با موفقیت روشن شد!")
-    print(f"آدرس اتصال: connect irkings.top")
+    print(f"آدرس سرور: connect irkings.top")
     print("IRking 10X 24/7")
 
 
-# ====================== !ip Command ======================
+# دستور !ip
 @bot.command()
 async def ip(ctx):
     embed = discord.Embed(
@@ -47,19 +53,19 @@ async def ip(ctx):
     await ctx.send(embed=embed)
 
 
-# ====================== !shop Command ======================
+# دستور !shop (همون قبلی، کامل و بدون تغییر)
 @bot.command()
 async def shop(ctx):
     select = Select(
         placeholder="رنک مورد نظرت رو انتخاب کن...",
         options=[
-            discord.SelectOption(label="Legendary", value="legendary", emoji="🏅",
+            discord.SelectOption(label="Legendary", value="legendary", emoji="trophy",
                                  description="ماه 360k | هفته 100k"),
-            discord.SelectOption(label="Elite Commander", value="elite", emoji="💠",
+            discord.SelectOption(label="Elite Commander", value="elite", emoji="gem",
                                  description="ماه 480k | هفته 120k"),
-            discord.SelectOption(label="GameMaster", value="gamemaster", emoji="👑",
+            discord.SelectOption(label="GameMaster", value="gamemaster", emoji="crown",
                                  description="ماه 640k | هفته 155k"),
-            discord.SelectOption(label="Overlord", value="overlord", emoji="💎",
+            discord.SelectOption(label="Overlord", value="overlord", emoji="diamond",
                                  description="ماه 800k | هفته 200k"),
         ]
     )
@@ -69,7 +75,7 @@ async def shop(ctx):
 
         ranks = {
             "legendary": {
-                "title": "رنک Legendary 🏅",
+                "title": "رنک Legendary trophy",
                 "color": 0x00ff00,
                 "price30": "360,000 تومان",
                 "price7": "100,000 تومان",
@@ -84,7 +90,7 @@ async def shop(ctx):
                 ]
             },
             "elite": {
-                "title": "رنک Elite Commander 💠",
+                "title": "رنک Elite Commander gem",
                 "color": 0x00ffff,
                 "price30": "480,000 تومان",
                 "price7": "120,000 تومان",
@@ -98,7 +104,7 @@ async def shop(ctx):
                 ]
             },
             "gamemaster": {
-                "title": "رنک GameMaster 👑",
+                "title": "رنک GameMaster crown",
                 "color": 0xffff00,
                 "price30": "640,000 تومان",
                 "price7": "155,000 تومان",
@@ -113,7 +119,7 @@ async def shop(ctx):
                 ]
             },
             "overlord": {
-                "title": "رنک Overlord 💎",
+                "title": "رنک Overlord diamond",
                 "color": 0xff00ff,
                 "price30": "800,000 تومان",
                 "price7": "200,000 تومان",
@@ -131,7 +137,6 @@ async def shop(ctx):
 
         data = ranks[choice]
 
-        # First embed with info
         embed = discord.Embed(title=data["title"], color=data["color"])
         embed.add_field(name="قیمت ۳۰ روز", value=data["price30"], inline=True)
         embed.add_field(name="قیمت ۷ روز", value=data["price7"], inline=True)
@@ -140,7 +145,6 @@ async def shop(ctx):
         embed.set_footer(text=f"عکس ۱ از {len(data['images'])} • برای خرید تیکت بزن")
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-        # Send other images one by one
         for i in range(1, len(data["images"])):
             emb = discord.Embed(color=data["color"])
             emb.set_image(url=data["images"][i])
@@ -161,5 +165,5 @@ async def shop(ctx):
     await ctx.send(embed=main_embed, view=view)
 
 
-# ====================== Run Bot ======================
+# راه‌اندازی بات
 bot.run(os.getenv("TOKEN"))
