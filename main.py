@@ -25,7 +25,6 @@ async def status_changer():
     statuses = [
         (discord.Game(name="connect irkings.top"), discord.Status.online),
         (discord.Activity(type=discord.ActivityType.watching, name="IRking 10X 24/7"), discord.Status.idle),
-        (discord.Activity(type=discord.ActivityType.listening, name="به دستورات شما"), discord.Status.dnd),
     ]
     while not bot.is_closed():
         for activity, status in statuses:
