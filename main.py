@@ -14,6 +14,83 @@ intents.guilds = True
 
 bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
 
+# ==================== دستور !vote (حرفه‌ای و کامل) ====================
+@bot.command(name="vote")
+@commands.has_permissions(administrator=True)
+async def vote(ctx, *, question_and_image: str = None):
+    if not question_and_image:
+        return await ctx.send("استفاده: `!vote سوال | لینک عکس`")
+
+    try:
+        question, image_url = question_and_image.split("|", 1)
+        question = question.strip()
+        image_url = image_url.strip()
+    except:
+        question = question_and_image
+        image_url = None
+
+    if len(question) > 200:
+        return await ctx.send("سوال خیلی طولانیه! حداکثر 200 کاراکتر")
+
+    # ایمبد اولیه
+    embed = discord.Embed(title="نظرسنجی", description=question, color=0x2f3136)
+    embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar.url if ctx.author.avatar else None)
+    if image_url:
+        embed.set_image(url=image_url)
+    embed.add_field(name="آره", value="0", inline=True)
+    embed.add_field(name="نه", value="0", inline=True)
+    embed.set_footer(text="برای رای دادن روی دکمه‌ها کلیک کنید")
+
+    view = VoteView()
+    message = await ctx.send(embed=embed, view=view)
+
+    # ذخیره رای‌گیری
+    votes[message.id] = {"yes": 0, "no": 0, "users": set()}
+
+class VoteView(View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    async def update_embed(self, interaction):
+        msg_id = interaction.message.id
+        data = votes.get(msg_id, {"yes": 0, "no": 0})
+        embed = interaction.message.embeds[0]
+        embed.set_field_at(0, name="آره", value=str(data["yes"]), inline=True)
+        embed.set_field_at(1, name="نه", value=str(data["no"]), inline=True)
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    @discord.ui.button(label="آره", style=discord.ButtonStyle.green, emoji="Check Mark Button", custom_id="vote_yes")
+    async def yes(self, interaction: discord.Interaction, button: Button):
+        msg_id = interaction.message.id
+        if msg_id not in votes:
+            return
+        user_id = interaction.user.id
+        if user_id in votes[msg_id]["users"]:
+            return await interaction.response.send_message("شما قبلاً رای دادید!", ephemeral=True)
+        votes[msg_id]["yes"] += 1
+        votes[msg_id]["users"].add(user_id)
+        await self.update_embed(interaction)
+
+    @discord.ui.button(label="نه", style=discord.ButtonStyle.red, emoji="Cross Mark", custom_id="vote_no")
+    async def no(self, interaction: discord.Interaction, button: Button):
+        msg_id = interaction.message.id
+        if msg_id not in votes:
+            return
+        user_id = interaction.user.id
+        if user_id in votes[msg_id]["users"]:
+            return await interaction.response.send_message("شما قبلاً رای دادید!", ephemeral=True)
+        votes[msg_id]["no"] += 1
+        votes[msg_id]["users"].add(user_id)
+        await self.update_embed(interaction)
+
+# ثبت دکمه‌های دائمی بعد از ری‌استارت
+@bot.event
+async def on_ready():
+    print(f"بات {bot.user} آنلاین شد!")
+    bot.add_view(TicketSelectView())
+    bot.add_view(CloseView())
+    bot.add_view(VoteView())  # مهم: رای‌گیری هم دائمی بشه
+
 # ==================== تنظیمات سیستم تیکت ====================
 TICKET_CATEGORY_NAME = "TICKETS"
 LOG_CHANNEL_ID = 1445905705323335680
@@ -236,7 +313,7 @@ async def shop(ctx):
                 "color": 0xffff00,
                 "price30": "640,000 تومان",
                 "price7": "155,000 تومان",
-                "perks": "• همه مزایای Elite\n• بدون کولداون کیت\n• No Radiation & No Bleeding\n• هلیکوپتر و مینی دائمی",
+                "perks": "• روشن کردن تورت\n• کیت مخصوص\n• افزایش سرعت آپگرید\n• mymini / myheli بدون کولداون\n• no cold & hot\n• reward بیشتر\n• بک‌پک بزرگتر بیلد کردت پیشرفته ساختن تورت راکتی برداشتن سنگ پخته",
                 "images": [
                     "https://uploadkon.ir/uploads/420914_25Rust-11-14-2025-5-29-54-PM.png",
                     "https://uploadkon.ir/uploads/28fd14_25Rust-11-14-2025-5-29-58-PM.png",
@@ -251,7 +328,7 @@ async def shop(ctx):
                 "color": 0xff00ff,
                 "price30": "800,000 تومان",
                 "price7": "200,000 تومان",
-                "perks": "• همه چیز + نقش اختصاصی\n• تبلیغ دائمی سرور\n• دسترسی کامل ادمین\n• کیت اختصاصی دائمی",
+                "perks": "• روشن کردن تورت\n• کیت مخصوص\n• افزایش سرعت آپگرید\n• mymini / myheli بدون کولداون\n• no cold & hot\n• reward بیشتر\n• بک‌پک بزرگتر بیلد کردن پیشرفته تورت راکتی",
                 "images": [
                     "https://uploadkon.ir/uploads/603114_25Rust-11-14-2025-5-30-41-PM.png",
                     "https://uploadkon.ir/uploads/668c14_25Rust-11-14-2025-5-30-45-PM.png",
