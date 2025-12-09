@@ -15,52 +15,119 @@ intents.guilds = True
 bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
 
 # ==================== دستور !vote (حرفه‌ای و کامل) ====================
-@bot.command(name="vote")
+@bot.command()
 @commands.has_permissions(administrator=True)
-async def vote(ctx, *, message: str = None):
-    if not message:
-        return await ctx.send("`!vote سوال | لینک عکس` یا فقط `!vote سوال`")
+async def vote(ctx, *, args=None):
+    if not args:
+        return await ctx.send("`!vote سوال | زمان (مثلاً 24h) | لینک عکس`")
 
     image_url = None
-    question = message.strip()
+    duration = 86400  # پیش‌فرض ۲۴ ساعت
+    question = args.strip()
 
-    # ۱. اگر | داشت
-    if "|" in question:
-        parts = question.split("|", 1)
-        question = parts[0].strip()
-        if len(parts) > 1:
-            potential_url = parts[1].strip()
-            if potential_url.startswith(("http://", "https://")):
-                image_url = potential_url
+    # تشخیص زمان (مثلاً 1h, 30m, 2d)
+    import re
+    time_match = re.search(r'(\d+)[hmd]', question.lower())
+    if time_match:
+        num = int(time_match.group(1))
+        unit = time_match.group(0)[-1]
+        if unit == 'h': duration = num * 3600
+        elif unit == 'm': duration = num * 60
+        elif unit == 'd': duration = num * 86400
+        question = re.sub(r'\d+[hmd]\s*', '', question, count=1).strip()
 
-    # ۲. اگر | نداشت، آخرین کلمه رو چک کن که لینک باشه
-    else:
-        words = question.split()
-        for word in reversed(words):
-            if word.lower().startswith(("http://", "https://", "www.")):
-                image_url = word
-                question = question.replace(word, "").strip()
-                break
+    # تشخیص لینک عکس
+    url_match = re.search(r'(https?://\S+\.(?:png|jpg|jpeg|gif|webp))', args)
+    if url_match:
+        image_url = url_match.group(1)
+        question = question.replace(url_match.group(1), "").strip()
 
-    # ایمبد نهایی
+    # ایمبد خفن
     embed = discord.Embed(
-        title="نظرسنجی جدید",
-        description=question or "بدون عنوان",
-        color=0x2b2d31,
-        timestamp=datetime.now()
+        title="نظرسنجی",
+        description=f"**{question or 'رای بدهید!'}**",
+        color=0x5865f2,
+        timestamp=datetime.utcnow() + timedelta(seconds=duration)
     )
-    embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar.url if ctx.author.avatar else None)
+    embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar.url or None)
     if image_url:
         embed.set_image(url=image_url)
-    embed.add_field(name="آره", value="0 رای", inline=True)
-    embed.add_field(name="نه", value="0 رای", inline=True)
-    embed.set_footer(text="هر نفر فقط یک بار می‌تونه رای بده • دکمه‌ها رو بزنید!")
+    embed.add_field(name="آره", value="`━━━━━━━━━━` 0% (0 رای)", inline=False)
+    embed.add_field(name="نه", value="`━━━━━━━━━━` 0% (0 رای)", inline=False)
+    embed.set_footer(text=f"پایان نظرسنجی")
 
-    view = VoteView()
+    view = ProVoteView(duration)
     msg = await ctx.send(embed=embed, view=view)
 
-    # ذخیره رای‌ها
-    votes[msg.id] = {"yes": 0, "no": 0, "voters": set()}
+    # ذخیره داده‌ها
+    votes[msg.id] = {
+        "yes": 0,
+        "no": 0,
+        "voters": set(),
+        "end_time": datetime.utcnow() + timedelta(seconds=duration),
+        "message": msg
+    }
+
+class ProVoteView(View):
+    def __init__(self, duration):
+        super().__init__(timeout=duration)
+        self.duration = duration
+
+    async def update(self, interaction):
+        data = votes.get(interaction.message.id)
+        if not data: return
+
+        total = data["yes"] + data["no"]
+        if total == 0:
+            yes_percent = no_percent = 0
+        else:
+            yes_percent = int(data["yes"] / total * 10)
+            no_percent = int(data["no"] / total * 10)
+
+        yes_bar = "🟩" * yes_percent + "⬜" * (10 - yes_percent)
+        no_bar = "🟥" * no_percent + "⬜" * (10 - no_percent)
+
+        embed = interaction.message.embeds[0]
+        embed.set_field_at(0, name="آره", value=f"{yes_bar} {data['yes']} رای ({yes_percent*10}%)", inline=False)
+        embed.set_field_at(1, name="نه", value=f"{no_bar} {data['no']} رای ({no_percent*10}%)", inline=False)
+
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    @discord.ui.button(label="آره", style=discord.ButtonStyle.green, emoji="✅", custom_id="vote_yes_pro")
+    async def yes(self, interaction: discord.Interaction, button):
+        data = votes.get(interaction.message.id)
+        if not data or interaction.user.id in data["voters"]:
+            return await interaction.response.send_message("شما قبلاً رای دادید!", ephemeral=True)
+        data["yes"] += 1
+        data["voters"].add(interaction.user.id)
+        await self.update(interaction)
+
+    @discord.ui.button(label="نه", style=discord.ButtonStyle.red, emoji="❌", custom_id="vote_no_pro")
+    async def no(self, interaction: discord.Interaction, button):
+        data = votes.get(interaction.message.id)
+        if not data or interaction.user.id in data["voters"]:
+            return await interaction.response.send_message("شما قبلاً رای دادید!", ephemeral=True)
+        data["no"] += 1
+        data["voters"].add(interaction.user.id)
+        await self.update(interaction)
+
+    async def on_timeout(self):
+        data = votes.get(self.message.id)
+        if not data: return
+        total = data["yes"] + data["no"]
+        embed = self.message.embeds[0]
+        embed.title = "نظرسنجی پایان یافت"
+        embed.color = 0x2f3136
+        embed.set_footer(text="نظرسنجی بسته شد")
+        await self.message.edit(embed=embed, view=None)
+
+# ثبت دکمه‌ها بعد از ری‌استارت
+@bot.event
+async def on_ready():
+    print(f"بات {bot.user} آنلاین شد!")
+    bot.add_view(TicketSelectView())
+    bot.add_view(CloseView())
+    bot.add_view(ProVoteView(86400))  # برای !vote
 # ==================== تنظیمات سیستم تیکت ====================
 TICKET_CATEGORY_NAME = "TICKETS"
 LOG_CHANNEL_ID = 1445905705323335680
