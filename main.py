@@ -232,21 +232,6 @@ async def developer(ctx, member: discord.Member = None):
         await member.add_roles(role)
         await ctx.send(f"بج Developer به {member.mention} داده شد!")
 
-!vote https://i.imgur.com/abc123.png فقط عکس بدون سوال
-
-@bot.event
-async def on_ready():
-    print(f"بات {bot.user} آنلاین شد!")
-    
-    # ←←← این خط جدیده، فقط اینو اضافه کن
-    activity = discord.Game(name="connect irkings.top")
-    await bot.change_presence(status=discord.Status.online, activity=activity)
-    
-    # این دو خط قبلی‌ات رو هم نگه دار
-    bot.add_view(TicketSelectView())
-    bot.add_view(CloseView())
-    bot.add_view(VoteView())
-
 # ==================== دستور !shop ====================
 # ------------------- دستور !shop کامل -------------------
 @bot.command()
@@ -347,6 +332,14 @@ async def shop(ctx):
     main_embed = discord.Embed(title="فروشگاه رنک IRking 10X", description="رنک مورد نظرت رو انتخاب کن:", color=0xff9900)
     main_embed.set_thumbnail(url="https://uploadkon.ir/uploads/f8c114_256b0e13495ed97b05b29e3481ef68f708.png")
     await ctx.send(embed=main_embed, view=view)
+
+@bot.event
+async def on_ready():
+    print(f"بات {bot.user} آنلاین شد!")
+    
+    # ←←← این خط جدیده، فقط اینو اضافه کن
+    activity = discord.Game(name="connect irkings.top")
+    await bot.change_presence(status=discord.Status.online, activity=activity)
 
 
 # ==================== Run ====================
