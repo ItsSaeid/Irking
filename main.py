@@ -14,6 +14,22 @@ intents.guilds = True
 
 bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
 
+@bot.command(name="msg")
+@commands.has_permissions(administrator=True)
+async def send_message(ctx, *, text=None):
+    # اگر چیزی ننوشت
+    if not text:
+        return await ctx.send("`!msg متن دلخواه`")
+
+    # پیام خودت رو حذف کن (اختیاری — اگه نمی‌خوای حذف بشه این خط رو کامنت کن)
+    try:
+        await ctx.message.delete()
+    except:
+        pass
+
+    # پیام رو بفرست (کاملاً خام)
+    await ctx.send(text)
+
 # ثبت دکمه‌ها بعد از ری‌استارت
 @bot.event
 async def on_ready():
