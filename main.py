@@ -450,7 +450,6 @@ async def slash_serverinfo(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed)
 
     @bot.command()
-@commands.has_permissions(manage_messages=True)
 async def mute(ctx, member: discord.Member, time: str = None, *, reason="بدون دلیل"):
     role = discord.utils.get(ctx.guild.roles, name="Muted")
     if not role:
