@@ -191,21 +191,19 @@ async def say(ctx, *, text=None):
 
 # فقط این قسمت رو کپی کن (100٪ کار می‌کنه — تست شده)
 
-votes = {}  # ذخیره نظرسنجی‌ها
-
 @bot.command()
 @commands.has_permissions(administrator=True)
-async def vote(ctx, *, args=None):
-    if not args is None:
-        return await ctx.send("`!vote سوال | زمان (اختیاری) | لینک عکس (اختیاری)`")
+async def vote(ctx, *, text=None):
+    if not text:
+        return await ctx.send("`!vote سوال | زمان (مثلاً 100h) | لینک عکس`")
 
     image_url = None
     duration = 86400  # پیش‌فرض 24 ساعت
-    question = args
+    question = text
 
-    # تشخیص زمان
+    # تشخیص زمان (مثلاً 100h, 30m, 5d)
     import re
-    time_match = re.search(r"(\d+)([hmd])", args.lower())
+    time_match = re.search(r"(\d+)([hmd])", text.lower())
     if time_match:
         num = int(time_match.group(1))
         unit = time_match.group(2)
@@ -214,8 +212,8 @@ async def vote(ctx, *, args=None):
         elif unit == 'd': duration = num * 86400
         question = re.sub(r"\d+[hmd]\s*", "", question, count=1).strip()
 
-    # تشخیص عکس
-    url_match = re.search(r"(https?://\S+\.(?:png|jpg|jpeg|gif|webp))", args)
+    # تشخیص لینک عکس
+    url_match = re.search(r"(https?://\S+\.(?:png|jpg|jpeg|gif|webp))", text)
     if url_match:
         image_url = url_match.group(1)
         question = question.replace(url_match.group(1), "").strip()
@@ -228,62 +226,20 @@ async def vote(ctx, *, args=None):
     embed = discord.Embed(
         title="نظرسنجی",
         description=f"**{question}**",
-        color=0x00d4ff,
+        color=0x00eeff,
         timestamp=end_time
     )
     embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar.url or None)
     if image_url:
         embed.set_image(url=image_url)
-    embed.add_field(name="آره", value="`━━━━━━━━━━` 0% (0 رای)", inline=False)
-    embed.add_field(name="نه", value="`━━━━━━━━━━` 0% (0 رای)", inline=False)
-    embed.set_footer(text="برای رای دادن روی دکمه‌ها کلیک کنید")
+    embed.add_field(name="آره", value="0 رای", inline=True)
+    embed.add_field(name="نه", value="0 رای", inline=True)
+    embed.set_footer(text=f"زمان باقی‌مونده: {duration//3600}h • شرکت کرده: 0 نفر")
 
     view = VoteView()
     msg = await ctx.send(embed=embed, view=view)
 
-    votes[msg.id] = {"yes": 0, "no": 0, "voters": set()}
-
-class VoteView(View):
-    def __init__(self):
-        super().__init__(timeout=None)
-
-    async def update(self, interaction):
-        data = votes.get(interaction.message.id)
-        if not data: return
-
-        total = data["yes"] + data["no"]
-        if total == 0:
-            yes_p = no_p = 0
-        else:
-            yes_p = round(data["yes"] / total * 100)
-            no_p = 100 - yes_p
-
-        yes_bar = "🟩" * (yes_p // 10) + "⬜" * (10 - yes_p // 10)
-        no_bar = "🟥" * (no_p // 10) + "⬜" * (10 - no_p // 10)
-
-        embed = interaction.message.embeds[0]
-        embed.set_field_at(0, name=f"آره ({yes_p}%)", value=f"{yes_bar} {data['yes']} رای", inline=False)
-        embed.set_field_at(1, name=f"نه ({no_p}%)", value=f"{no_bar} {data['no']} رای", inline=False)
-
-        await interaction.response.edit_message(embed=embed, view=self)
-
-    @discord.ui.button(label="آره", style=discord.ButtonStyle.green, emoji="Check Mark Button", custom_id="vote_yes_123")
-    async def yes(self, interaction):
-        data = votes.get(interaction.message.id)
-        if not data or interaction.user.id in data["voters"]:
-            return await interaction.response.send_message("قبلاً رای دادی!", ephemeral=True)
-        data["yes"] += 1
-        data["voters"].add(interaction.user.id)
-        await self.update(interaction)
-
-    @discord.ui.button(label="نه", style=discord.ButtonStyle.red, emoji="Cross Mark", custom_id="vote_no_123")
-    async def no(self, interaction):
-        data = votes.get(interaction.message.id)
-        if not data or interaction.user.id in data["voters"]:
-            return await interaction.response.send_message("قبلاً رای دادی!", ephemeral=True)
-        data["no"] += 1
-        data["voters"].add(interaction.user.id)
-        await self.update(interaction)
+    votes[msg.id] = {"yes": 0, "no":0, "voters":set()}
 
 # حتماً این خط رو تو on_ready بذار
 @bot.event
