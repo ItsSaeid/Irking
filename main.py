@@ -399,6 +399,22 @@ async def on_ready():
     activity = discord.Game(name="connect irkings.top")
     await bot.change_presence(status=discord.Status.online, activity=activity)
 
+@bot.command(name="msg")
+@commands.has_permissions(administrator=True)
+async def send_message(ctx, *, text=None):
+    # اگر چیزی ننوشت
+    if not text:
+        return await ctx.send("`!msg متن دلخواه`")
+
+    # پیام خودت رو حذف کن (اختیاری — اگه نمی‌خوای حذف بشه این خط رو کامنت کن)
+    try:
+        await ctx.message.delete()
+    except:
+        pass
+
+    # پیام رو بفرست (کاملاً خام)
+    await ctx.send(text)
+
 
 # ==================== Run ====================
 bot.run(os.getenv("TOKEN"))
