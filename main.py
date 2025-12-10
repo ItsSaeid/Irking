@@ -279,87 +279,59 @@ async def on_ready():
 async def ip(ctx):
     await ctx.send(embed=discord.Embed(title="آدرس سرور", description="```connect irkings.top```", color=0xff9900))
 
-giveaways = {}
+active_votes = {}
 
 @bot.command()
 @commands.has_permissions(administrator=True)
-async def giveaway(ctx, duration: str, winners: int, *, prize: str):
-    try:
-        if duration.endswith('s'): secs = int(duration[:-1])
-        elif duration.endswith('m'): secs = int(duration[:-1]) * 60
-        elif duration.endswith('h'): secs = int(duration[:-1]) * 3600
-        elif duration.endswith('d'): secs = int(duration[:-1]) * 86400
-        else: raise ValueError
-    except:
-        return await ctx.send("زمان اشتباه! مثال: `1h`, `30m`, `2d`")
+async def vote(ctx, *, text="آیا موافقی؟"):
+    # اگر فقط !vote زد، سوال پیش‌فرض
+    question = text.strip()
+    if not question:
+        question = "آیا موافقی؟"
 
-    end = datetime.utcnow() + timedelta(seconds=secs)
+    embed = discord.Embed(title="نظرسنجی", description=question, color=0x00eeff)
+    embed.add_field(name="آره", value="0", inline=True)
+    embed.add_field(name="نه", value="0", inline=True)
+    embed.set_footer(text="برای رای دادن روی دکمه بزنید")
 
-    embed = discord.Embed(
-        title="جایزه ویژه!",
-        description=f"**{prize}**\n\nبرنده‌ها: **{winners} نفر**\nزمان باقی‌مونده: **{duration}**",
-        color=0x00ff00,
-        timestamp=end
-    )
-    embed.set_author(name="Giveaway جدید!", icon_url="https://i.imgur.com/JKf8c5x.gif")
-    embed.set_thumbnail(url="https://i.imgur.com/2Z2yM9c.gif")
-    embed.add_field(name="شرکت کرده", value="0 نفر", inline=False)
-    embed.set_footer(text="برای شرکت روی دکمه Enter بزنید")
-
-    view = GView()
+    view = SimpleVoteView()
     msg = await ctx.send(embed=embed, view=view)
+    active_votes[msg.id] = {"yes": 0, "no": 0, "voters": set()}
 
-    giveaways[msg.id] = {
-        "end": end,
-        "winners": winners,
-        "prize": prize,
-        "entries": [],
-        "msg": msg
-    }
-
-class GView(View):
+class SimpleVoteView(View):
     def __init__(self):
         super().__init__(timeout=None)
 
-    @discord.ui.button(label="Enter", style=discord.ButtonStyle.green, emoji="Party Popper", custom_id="enter_gw_2025")
-    async def enter(self, interaction: discord.Interaction, button: Button):
-        gw = giveaways.get(interaction.message.id)
-        if not gw: return
-
-        if interaction.user.id in gw["entries"]:
-            return await interaction.response.send_message("قبلاً شرکت کردی!", ephemeral=True)
-
-        gw["entries"].append(interaction.user.id)
-
+    async def update(self, interaction):
+        data = active_votes.get(interaction.message.id)
+        if not data: return
         embed = interaction.message.embeds[0]
-        embed.set_field_at(0, name="شرکت کرده", value=f"{len(gw['entries'])} نفر", inline=False)
+        embed.set_field_at(0, name="آره", value=str(data["yes"]), inline=True)
+        embed.set_field_at(1, name="نه", value=str(data["no"]), inline=True)
         await interaction.response.edit_message(embed=embed, view=self)
 
-    async def on_timeout(self):
-        gw = giveaways.get(self.message.id)
-        if not gw or not gw["entries"]:
-            await self.message.edit(content="گیواوی لغو شد — کسی شرکت نکرد!", embed=None, view=None)
-            return
+    @discord.ui.button(label="آره", style=discord.ButtonStyle.green, emoji="Check Mark Button", custom_id="simple_yes")
+    async def yes(self, interaction):
+        data = active_votes.get(interaction.message.id)
+        if data and interaction.user.id not in data["voters"]:
+            data["yes"] += 1
+            data["voters"].add(interaction.user.id)
+            await self.update(interaction)
 
-        import random
-        winners = random.sample(gw["entries"], k=min(gw["winners"], len(gw["entries"])))
-        mention = " ".join([f"<@{u}>" for u in winners])
+    @discord.ui.button(label="نه", style=discord.ButtonStyle.red, emoji="Cross Mark", custom_id="simple_no")
+    async def no(self, interaction):
+        data = active_votes.get(interaction.message.id)
+        if data and interaction.user.id not in data["voters"]:
+            data["no"] += 1
+            data["voters"].add(interaction.user.id)
+            await self.update(interaction)
 
-        await self.message.edit(
-            content=f"گیواوی تموم شد!\nبرنده‌ها: {mention}\nجایزه: **{gw['prize']}**",
-            embed=None,
-            view=None
-        )
-        await self.message.reply(f"تبریک به برنده‌ها! {mention}")
-
-# ——————————————————— آماده شدن بات ———————————————————
 @bot.event
 async def on_ready():
-    print(f"بات {bot.user} آنلاین شد!")
+    print("بات آماده است!")
     await bot.change_presence(activity=discord.Game("connect irkings.top"))
-    bot.add_view(TicketSelectView())
-    bot.add_view(CloseView())
-    bot.add_view(VoteView())
+    bot.add_view(SimpleVoteView())  # این خط مهمه
+# ——————————————————— آماده شدن بات ———————————————————
 
 # ——————————————————— اجرا ———————————————————
 bot.run(os.getenv("TOKEN"))
