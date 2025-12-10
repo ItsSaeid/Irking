@@ -9,6 +9,7 @@ import os
 from datetime import datetime, timedelta
 import re
 from dotenv import load_dotenv
+from discord import app_commands
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -188,49 +189,48 @@ async def say(ctx, *, text=None):
     # پیام خودت رو پاک نکن — فقط متن رو بفرست
     await ctx.send(text, allowed_mentions=discord.AllowedMentions.none())
 
-# ——————————————————— دستور !vote (مثل ProBot) ———————————————————
-@bot.command()
-@commands.has_permissions(administrator=True)
-async def vote(ctx, *, text=None):
-    if not text:
-        return await ctx.send("`!vote سوال (اختیاری: زمان و عکس)`")
+# اسلش کامند /vote — دقیقاً مثل ProBot
+@bot.tree.command(name="vote", description="ساخت نظرسنجی حرفه‌ای")
+@app_commands.describe(
+    question="سوال نظرسنجی",
+    duration="مدت زمان (مثال: 1h, 30m, 2d)",
+    image="لینک عکس (اختیاری)"
+)
+async def vote_slash(interaction: discord.Interaction, question: str, duration: str = "24h", image: str = None):
+    # تبدیل زمان
+    try:
+        if duration.endswith('s'): secs = int(duration[:-1])
+        elif duration.endswith('m'): secs = int(duration[:-1]) * 60
+        elif duration.endswith('h'): secs = int(duration[:-1]) * 3600
+        elif duration.endswith('d'): secs = int(duration[:-1]) * 86400
+        else: secs = 86400
+    except:
+        secs = 86400
 
-    image_url = None
-    duration = 86400
-    question = text.strip()
+    end_time = datetime.utcnow() + timedelta(seconds=secs)
 
-    # تشخیص زمان
-    time_match = re.search(r"(\d+)([hmd])", question.lower())
-    if time_match:
-        num = int(time_match.group(1))
-        unit = time_match.group(2)
-        if unit == 'h': duration = num * 3600
-        elif unit == 'm': duration = num * 60
-        elif unit == 'd': duration = num * 86400
-        question = re.sub(r"\d+[hmd]\s*", "", question, count=1).strip()
+    embed = discord.Embed(
+        title="نظرسنجی",
+        description=f"**{question}**",
+        color=0x5865f2,
+        timestamp=end_time
+    )
+    embed.set_author(name=interaction.user.display_name, icon_url=interaction.user.avatar.url or None)
+    if image:
+        embed.set_image(url=image)
+    embed.add_field(name="آره", value="`▬▬▬▬▬▬▬▬▬▬` 0% (0)", inline=False)
+    embed.add_field(name="نه", value="`▬▬▬▬▬▬▬▬▬▬` 0% (0)", inline=False)
+    embed.set_footer(text=f"پایان نظرسنجی • شرکت کرده: 0 نفر")
 
-    # تشخیص عکس
-    url_match = re.search(r"(https?://\S+\.(?:png|jpg|jpeg|gif|webp))", text)
-    if url_match:
-        image_url = url_match.group(1)
-        question = question.replace(url_match.group(1), "").strip()
+    view = SlashVoteView(secs)
+    await interaction.response.send_message(embed=embed, view=view)
 
-    embed = discord.Embed(title="نظرسنجی", description=f"**{question or 'رای بدهید!'}**", color=0x5865f2)
-    embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar.url or None)
-    if image_url:
-        embed.set_image(url=image_url)
-    embed.add_field(name="آره", value="0 رای", inline=True)
-    embed.add_field(name="نه", value="0 رای", inline=True)
-    embed.set_footer(text="پایان نظرسنجی")
-
-    view = VoteView()
-    msg = await ctx.send(embed=embed, view=view)
-
+    msg = await interaction.original_response()
     votes[msg.id] = {"yes": 0, "no": 0, "voters": set()}
 
-class VoteView(View):
-    def __init__(self):
-        super().__init__(timeout=None)
+class SlashVoteView(View):
+    def __init__(self, duration):
+        super().__init__(timeout=duration)
 
     async def update(self, interaction):
         data = votes.get(interaction.message.id)
@@ -238,14 +238,18 @@ class VoteView(View):
         total = data["yes"] + data["no"]
         yes_p = int(data["yes"] / total * 100) if total > 0 else 0
         no_p = 100 - yes_p
-        bar = "Green Square" * int(yes_p / 10) + "White Square" * (10 - int(yes_p / 10))
+
+        yes_bar = "🟩" * int(yes_p / 10) + "⬜" * (10 - int(yes_p / 10))
+        no_bar = "🟥" * int(no_p / 10) + "⬜" * (10 - int(no_p / 10))
 
         embed = interaction.message.embeds[0]
-        embed.set_field_at(0, name=f"آره ({yes_p}%)", value=f"{bar} {data['yes']} رای", inline=True)
-        embed.set_field_at(1, name=f"نه ({no_p}%)", value=f"{bar[::-1] if no_p > yes_p else 'White Square'*10} {data['no']} رای", inline=True)
+        embed.set_field_at(0, name=f"آره ({yes_p}%)", value=f"{yes_bar} {data['yes']} رای", inline=False)
+        embed.set_field_at(1, name=f"نه ({no_p}%)", value=f"{no_bar} {data['no']} رای", inline=False)
+        embed.set_footer(text=f"پایان نظرسنجی • شرکت کرده: {total} نفر")
+
         await interaction.response.edit_message(embed=embed, view=self)
 
-    @discord.ui.button(label="آره", style=discord.ButtonStyle.green, emoji="Check Mark Button", custom_id="vote_yes")
+    @discord.ui.button(label="آره", style=discord.ButtonStyle.green, emoji="Check Mark Button", custom_id="slash_yes")
     async def yes(self, interaction):
         data = votes.get(interaction.message.id)
         if not data or interaction.user.id in data["voters"]:
@@ -254,7 +258,7 @@ class VoteView(View):
         data["voters"].add(interaction.user.id)
         await self.update(interaction)
 
-    @discord.ui.button(label="نه", style=discord.ButtonStyle.red, emoji="Cross Mark", custom_id="vote_no")
+    @discord.ui.button(label="نه", style=discord.ButtonStyle.red, emoji="Cross Mark", custom_id="slash_no")
     async def no(self, interaction):
         data = votes.get(interaction.message.id)
         if not data or interaction.user.id in data["voters"]:
