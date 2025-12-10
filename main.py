@@ -496,28 +496,6 @@ async def unlock(ctx):
     await ctx.send("چنل باز شد!")
 
 # 6. !role — دادن/گرفتن رول
-@bot.command()
-@commands.has_permissions(manage_roles=True)
-async def role(ctx, member: discord.Member, role: discord.Role):
-    if role in member.roles:
-        await member.remove_roles(role)
-        await ctx.send(f"رول {role.name} از {member.mention} برداشته شد")
-    else:
-        await member.add_roles(role)
-        await ctx.send(f"رول {role.name} به {member.mention} داده شد")
-
-        @bot.event
-async def on_message(msg):
-    if msg.author.bot: return
-    user_id = str(msg.author.id)
-    if user_id not in levels:
-        levels[user_id] = {"xp": 0, "level": 0}
-    levels[user_id]["xp"] += 5  # هر پیام 5 XP
-    lvl = int((levels[user_id]["xp"] // 100) ** 0.5) + 1
-    if lvl > levels[user_id]["level"]:
-        levels[user_id]["level"] = lvl
-        await msg.channel.send(f"تبریک {msg.author.mention}! لِوِلت شد **{lvl}** ")
-    await bot.process_commands(msg)
 
 @bot.command()
 async def level(ctx, member: discord.Member = None):
@@ -527,13 +505,6 @@ async def level(ctx, member: discord.Member = None):
     embed = discord.Embed(title=f"لِوِل {member.display_name}", color=0x00ffff)
     embed.add_field(name="لِوِل", value=data["level"], inline=True)
     embed.add_field(name="XP", value=f"{data['xp']} / {(data['level']**2)*100}", inline=True)
-    await ctx.send(embed=embed)
-
-@bot.command()
-async def leaderboard(ctx):
-    sorted_levels = sorted(levels.items(), key=lambda x: x[1]["level"], reverse=True)[:10]
-    text = "\n".join([f"{i+1}. <@{uid}> — لِوِل {data['level']} ({data['xp']} XP)" for i, (uid, data) in enumerate(sorted_levels)])
-    embed = discord.Embed(title="لیدربورد لِوِل", description=text or "هیچ کس هنوز لِوِل نداره!", color=0xff9900)
     await ctx.send(embed=embed)
 
 # 2. تبریک بوست + رول ویژه
