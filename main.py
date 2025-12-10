@@ -382,12 +382,6 @@ class VoteView(View):
         data["voters"].add(interaction.user.id)
         await self.update(interaction)
 
-# ثبت دکمه‌ها
-@bot.event
-async def on_ready():
-    print(f"بات {bot.user} آنلاین شد!")
-    bot.add_view(VoteView())
-
 @bot.event
 async def on_ready():
     print(f"بات {bot.user} آنلاین شد!")
