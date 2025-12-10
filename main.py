@@ -449,33 +449,6 @@ async def slash_serverinfo(interaction: discord.Interaction):
 
     await interaction.response.send_message(embed=embed)
 
-    @bot.command()
-async def mute(ctx, member: discord.Member, time: str = None, *, reason="بدون دلیل"):
-    role = discord.utils.get(ctx.guild.roles, name="Muted")
-    if not role:
-        role = await ctx.guild.create_role(name="Muted", reason="برای mute")
-        for channel in ctx.guild.channels:
-            await channel.set_permissions(role, send_messages=False, speak=False)
-    
-    duration = None
-    if time:
-        try:
-            if time.endswith('m'): duration = int(time[:-1]) * 60
-            elif time.endswith('h'): duration = int(time[:-1]) * 3600
-            elif time.endswith('d'): duration = int(time[:-1]) * 86400
-        except: duration = None
-    
-    await member.add_roles(role, reason=reason)
-    await ctx.send(f"{member.mention} سایلنت شد! مدت: {time or 'دائم'} | دلیل: {reason}")
-    
-    if duration:
-        await asyncio.sleep(duration)
-        await member.remove_roles(role)
-
-@bot.tree.command(name="mute", description="سایلنت کردن کاربر")
-@app_commands.describe(member="کاربر", time="زمان (مثلاً 30m)", reason="دلیل")
-async def slash_mute(interaction: discord.Interaction, member: discord.Member, time: str = None, reason: str = "بدون دلیل"):
-    # همون کد بالا (کوتاه شده برای اسلش)
 
 # 2. !warn و /warn — هشدار دادن + سیستم وارن
 warns = {}
