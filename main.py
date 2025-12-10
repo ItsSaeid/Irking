@@ -168,6 +168,13 @@ async def say(ctx, *, text=None):
         pass
     await ctx.send(text, allowed_mentions=discord.AllowedMentions.none())
 
+@bot.command()
+async def cart(ctx):
+    embed = discord.Embed(title="کارت به کارت", color=0xff9900)
+    embed.add_field(name="شماره کارت", value="```6219-8618-1827-9068```", inline=False)
+    embed.add_field(name="به نام", value="**فرهاد حسینی**", inline=False)
+    await ctx.send(embed=embed)
+
 # ——————————————————— !vote ———————————————————
 @bot.command()
 @commands.has_permissions(administrator=True)
