@@ -12,12 +12,6 @@ intents.message_content = True
 intents.members = True
 intents.guilds = True
 
-@bot.event
-async def on_ready():
-    print(f"بات {bot.user} آنلاین شد!")
-    bot.add_view(TicketSelectView())
-    bot.add_view(CloseView())
-    bot.add_view(ProVoteView(86400))  # برای !vote
 # ==================== تنظیمات سیستم تیکت ====================
 TICKET_CATEGORY_NAME = "TICKETS"
 LOG_CHANNEL_ID = 1445905705323335680
