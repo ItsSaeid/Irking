@@ -196,8 +196,8 @@ async def vote(ctx, *, text=None):
     embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar.url or None)
     if image_url:
         embed.set_image(url=image_url)
-    embed.add_field(name="1", value="0 رای", inline=True)
-    embed.add_field(name="2", value="0 رای", inline=True)
+    embed.add_field(name="آره", value="0 رای", inline=True)
+    embed.add_field(name="نه", value="0 رای", inline=True)
 
     view = VoteView()
     msg = await ctx.send(embed=embed, view=view)
@@ -217,19 +217,19 @@ class VoteView(View):
         embed.set_field_at(1, name=f"نه ({100-yes_p}%)", value=str(data["no"]), inline=True)
         await interaction.response.edit_message(embed=embed, view=self)
 
-    @discord.ui.button(label="1", style=discord.ButtonStyle.green, emoji="✅", custom_id="yes2025")
+    @discord.ui.button(label="آره", style=discord.ButtonStyle.green, emoji="✅", custom_id="yes2025")
     async def yes(self, interaction):
         data = votes.get(interaction.message.id)
         if data and interaction.user.id not in data["voters"]:
-            data["1"] += 1
+            data["yes"] += 1
             data["voters"].add(interaction.user.id)
             await self.update(interaction)
 
-    @discord.ui.button(label="2", style=discord.ButtonStyle.red, emoji="❌", custom_id="no2025")
+    @discord.ui.button(label="نه", style=discord.ButtonStyle.red, emoji="❌", custom_id="no2025")
     async def no(self, interaction):
         data = votes.get(interaction.message.id)
         if data and interaction.user.id not in data["voters"]:
-            data["2"] += 1
+            data["no"] += 1
             data["voters"].add(interaction.user.id)
             await self.update(interaction)
 
@@ -332,6 +332,103 @@ async def shop(ctx):
     main_embed.set_thumbnail(url="https://uploadkon.ir/uploads/f8c114_256b0e13495ed97b05b29e3481ef68f708.png")
     await ctx.send(embed=main_embed, view=view)
 
+@bot.command()
+@commands.has_permissions(administrator=True)
+async def clear(ctx, amount: int = 10):
+    await ctx.channel.purge(limit=amount + 1)
+    await ctx.send(f"**{amount}** پیام پاک شد!", delete_after=5)
+
+@bot.tree.command(name="clear", description="پاک کردن پیام‌ها")
+@app_commands.describe(amount="تعداد پیام (پیش‌فرض 10)")
+async def slash_clear(interaction: discord.Interaction, amount: int = 10):
+    if not interaction.user.guild_permissions.administrator:
+        return await interaction.response.send_message("فقط ادمین!", ephemeral=True)
+    await interaction.channel.purge(limit=amount + 1)
+    await interaction.response.send_message(f"**{amount}** پیام پاک شد!", ephemeral=True)
+
+# 2. !kick و /kick
+@bot.command()
+@commands.has_permissions(kick_members=True)
+async def kick(ctx, member: discord.Member, *, reason="بدون دلیل"):
+    await member.kick(reason=reason)
+    await ctx.send(f"{member.mention} کیک شد! دلیل: {reason}")
+
+@bot.tree.command(name="kick", description="کیک کردن کاربر")
+@app_commands.describe(member="کاربر", reason="دلیل (اختیاری)")
+async def slash_kick(interaction: discord.Interaction, member: discord.Member, reason: str = "بدون دلیل"):
+    if not interaction.user.guild_permissions.kick_members:
+        return await interaction.response.send_message("دسترسی نداری!", ephemeral=True)
+    await member.kick(reason=reason)
+    await interaction.response.send_message(f"{member.mention} کیک شد! دلیل: {reason}")
+
+# 3. !ban و /ban
+@bot.command()
+@commands.has_permissions(ban_members=True)
+async def ban(ctx, member: discord.Member, *, reason="بدون دلیل"):
+    await member.ban(reason=reason)
+    await ctx.send(f"{member.mention} بن شد! دلیل: {reason}")
+
+@bot.tree.command(name="ban", description="بن کردن کاربر")
+@app_commands.describe(member="کاربر", reason="دلیل (اختیاری)")
+async def slash_ban(interaction: discord.Interaction, member: discord.Member, reason: str = "بدون دلیل"):
+    if not interaction.user.guild_permissions.ban_members:
+        return await interaction.response.send_message("دسترسی نداری!", ephemeral=True)
+    await member.ban(reason=reason)
+    await interaction.response.send_message(f"{member.mention} بن شد! دلیل: {reason}")
+
+# 4. !unban و /unban
+@bot.command()
+@commands.has_permissions(ban_members=True)
+async def unban(ctx, user_id: int):
+    user = await bot.fetch_user(user_id)
+    await ctx.guild.unban(user)
+    await ctx.send(f"{user.name} آنبن شد!")
+
+@bot.tree.command(name="unban", description="آنبن کردن کاربر")
+@app_commands.describe(user_id="آیدی کاربر")
+async def slash_unban(interaction: discord.Interaction, user_id: int):
+    if not interaction.user.guild_permissions.ban_members:
+        return await interaction.response.send_message("دسترسی نداری!", ephemeral=True)
+    user = await bot.fetch_user(user_id)
+    await interaction.guild.unban(user)
+    await interaction.response.send_message(f"{user.name} آنبن شد!")
+
+# 5. !avatar و /avatar
+@bot.command()
+async def avatar(ctx, member: discord.Member = None):
+    member = member or ctx.author
+    embed = discord.Embed(title=f"آواتار {member.name}", color=0x00ffff)
+    embed.set_image(url=member.display_avatar.url)
+    await ctx.send(embed=embed)
+
+@bot.tree.command(name="avatar", description="نمایش آواتار")
+@app_commands.describe(member="کاربر (اختیاری)")
+async def slash_avatar(interaction: discord.Interaction, member: discord.Member = None):
+    member = member or interaction.user
+    embed = discord.Embed(title=f"آواتار {member.name}", color=0x00ffff)
+    embed.set_image(url=member.display_avatar.url)
+    await interaction.response.send_message(embed=embed)
+
+# 6. !serverinfo و /serverinfo
+@bot.command()
+async def serverinfo(ctx):
+    g = ctx.guild
+    embed = discord.Embed(title=f"اطلاعات {g.name}", color=0xff9900)
+    embed.add_field(name="اعضا", value=g.member_count, inline=True)
+    embed.add_field(name="آنلاین", value=len([m for m in g.members if m.status != discord.Status.offline]), inline=True)
+    embed.add_field(name="ساخت سرور", value=g.created_at.strftime("%Y-%m-%d"), inline=True)
+    embed.set_thumbnail(url=g.icon.url if g.icon else None)
+    await ctx.send(embed=embed)
+
+@bot.tree.command(name="serverinfo", description="اطلاعات سرور")
+async def slash_serverinfo(interaction: discord.Interaction):
+    g = interaction.guild
+    embed = discord.Embed(title=f"اطلاعات {g.name}", color=0xff9900)
+    embed.add_field(name="اعضا", value=g.member_count, inline=True)
+    embed.add_field(name="آنلاین", value=len([m for m in g.members if m.status != discord.Status.offline]), inline=True)
+    embed.add_field(name="ساخت سرور", value=g.created_at.strftime("%Y-%m-%d"), inline=True)
+    embed.set_thumbnail(url=g.icon.url if g.icon else None)
+    await interaction.response.send_message(embed=embed)
 
 # ——————————————————— on_ready ———————————————————
 @bot.event
