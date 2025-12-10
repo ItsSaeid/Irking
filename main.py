@@ -188,8 +188,6 @@ async def say(ctx, *, text=None):
 
     await ctx.send(text, allowed_mentions=discord.AllowedMentions.none())
 
-
-
 votes = {}
 
 @bot.command()
@@ -276,7 +274,6 @@ async def on_ready():
     print(f"بات {bot.user} آنلاین شد!")
     await bot.change_presence(activity=discord.Game("connect irkings.top"))
     bot.add_view(VoteView())  # بدون این خط هیچی کار نمی‌کنه!
-
 # ——————————————————— دستورات دیگر ———————————————————
 @bot.command()
 async def ip(ctx):
