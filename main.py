@@ -190,6 +190,8 @@ async def say(ctx, *, text=None):
 
 
 
+# فقط این قسمت رو جایگزین کن (100٪ کار می‌کنه)
+
 votes = {}
 
 @bot.command()
