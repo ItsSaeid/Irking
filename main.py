@@ -8,6 +8,7 @@ import io
 import os
 from datetime import datetime, timedelta
 import re
+from discord import app_commands
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -64,6 +65,84 @@ class CloseView(View):
     async def close(self, interaction: discord.Interaction, button: Button):
         await interaction.response.defer(ephemeral=True)
         await interaction.channel.delete()
+
+        giveaways = {}
+
+@bot.tree.command(name="giveaway", description="ساخت گیواوی حرفه‌ای")
+@app_commands.describe(
+    time="مدت زمان (مثلاً 24h, 30m, 2d)",
+    winners="تعداد برنده",
+    prize="جایزه"
+)
+async def giveaway(interaction: discord.Interaction, time: str, winners: int, prize: str):
+    # تبدیل زمان
+    try:
+        if time.endswith('s'): secs = int(time[:-1])
+        elif time.endswith('m'): secs = int(time[:-1]) * 60
+        elif time.endswith('h'): secs = int(time[:-1]) * 3600
+        elif time.endswith('d'): secs = int(time[:-1]) * 86400
+        else: secs = 86400
+    except:
+        return await interaction.response.send_message("زمان اشتباهه! مثال: `24h`", ephemeral=True)
+
+    end_time = datetime.utcnow() + timedelta(seconds=secs)
+
+    embed = discord.Embed(
+        title="جایزه ویژه!",
+        description=f"**{prize}**\n\nبرنده‌ها: **{winners} نفر**\nزمان باقی‌مونده: **{time}**",
+        color=0x00ff00,
+        timestamp=end_time
+    )
+    embed.set_author(name="Giveaway جدید!", icon_url=interaction.user.display_avatar.url)
+    embed.set_thumbnail(url="https://i.imgur.com/2Z2yM9c.gif")
+    embed.set_footer(text="شرکت کرده: 0 نفر")
+
+    view = SlashGiveawayView()
+    await interaction.response.send_message(embed=embed, view=view)
+
+    msg = await interaction.original_response()
+    giveaways[msg.id] = {
+        "end": end_time,
+        "winners": winners,
+        "prize": prize,
+        "entries": [],
+        "msg": msg
+    }
+
+class SlashGiveawayView(View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(label="Enter", style=discord.ButtonStyle.green, emoji="Party Popper", custom_id="slash_enter_gw")
+    async def enter(self, interaction: discord.Interaction, button: Button):
+        gw = giveaways.get(interaction.message.id)
+        if not gw: return
+
+        if interaction.user.id in gw["entries"]:
+            return await interaction.response.send_message("قبلاً شرکت کردی!", ephemeral=True)
+
+        gw["entries"].append(interaction.user.id)
+
+        embed = interaction.message.embeds[0]
+        embed.set_footer(text=f"شرکت کرده: {len(gw['entries'])} نفر")
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    async def on_timeout(self):
+        gw = giveaways.get(self.message.id)
+        if not gw or not gw["entries"]:
+            await self.message.edit(content="گیواوی لغو شد — کسی شرکت نکرد!", embed=None, view=None)
+            return
+
+        import random
+        winners = random.sample(gw["entries"], k=min(gw["winners"], len(gw["entries"])))
+        mention = " ".join([f"<@{u}>" for u in winners])
+
+        await self.message.edit(
+            content=f"گیواوی تموم شد!\nبرنده‌ها: {mention}\nجایزه: **{gw['prize']}**",
+            embed=None,
+            view=None
+        )
+        await self.message.reply(f"تبریک به برنده‌ها! {mention}")
 
 # ——————————————————— !say ———————————————————
 @bot.command()
@@ -241,7 +320,7 @@ async def shop(ctx):
     main_embed.set_thumbnail(url="https://uploadkon.ir/uploads/f8c114_256b0e13495ed97b05b29e3481ef68f708.png")
     await ctx.send(embed=main_embed, view=view)
 
-    
+
 # ——————————————————— on_ready ———————————————————
 @bot.event
 async def on_ready():
