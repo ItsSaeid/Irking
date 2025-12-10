@@ -297,12 +297,12 @@ async def on_ready():
 async def ip(ctx):
     await ctx.send(embed=discord.Embed(title="آدرس سرور", description="```connect irkings.top```", color=0xff9900))
 
-giveaways = {}  # ذخیره گیواوی‌ها
+giveaways = {}
 
 @bot.command()
 @commands.has_permissions(administrator=True)
 async def giveaway(ctx, time: str, winners: int, *, prize: str):
-    # تبدیل زمان به ثانیه
+    # تبدیل زمان
     try:
         if time.endswith('s'): secs = int(time[:-1])
         elif time.endswith('m'): secs = int(time[:-1]) * 60
@@ -310,38 +310,39 @@ async def giveaway(ctx, time: str, winners: int, *, prize: str):
         elif time.endswith('d'): secs = int(time[:-1]) * 86400
         else: raise ValueError
     except:
-        return await ctx.send("زمان اشتباهه! مثال: `1h`, `30m`, `2d`")
+        return await ctx.send("زمان اشتباه! مثال: `1h` `30m` `2d`")
 
-    end = datetime.utcnow() + timedelta(seconds=secs)
+    end_time = datetime.utcnow() + timedelta(seconds=secs)
 
     embed = discord.Embed(
         title="جایزه ویژه!",
-        description=f"**{prize}**\n\nبرای شرکت روی دکمه زیر بزنید\nبرنده‌ها: **{winners} نفر**\nزمان باقی‌مونده: **{time}**",
+        description=f"**{prize}**\n\nبرای شرکت روی دکمه بزنید\nبرنده‌ها: **{winners} نفر**\nزمان باقی‌مونده: **{time}**",
         color=0xff9f00,
-        timestamp=end
+        timestamp=end_time
     )
-    embed.set_thumbnail(url="https://i.imgur.com/JKf8c5x.gif")
-    embed.set_footer(text="شرکت کرده: 0 نفر • پایان:")
+    embed.set_thumbnail(url="https://i.imgur.com/2Z2yM9c.gif")
+    embed.set_footer(text="شرکت کرده: 0 نفر")
 
-    view = GView()
-    msg = await ctx.send(embed=embed, view=view)
+    view = GiveawayView()
+    message = await ctx.send(embed=embed, view=view)
 
-    giveaways[msg.id] = {
-        "end": end,
+    giveaways[message.id] = {
+        "end": end_time,
         "winners": winners,
         "prize": prize,
         "entries": [],
-        "msg": msg
+        "message": message
     }
 
-class GView(View):
+class GiveawayView(View):
     def __init__(self):
         super().__init__(timeout=None)
 
-    @discord.ui.button(label="شرکت در گیواوی", style=discord.ButtonStyle.blurple, emoji="Party Popper", custom_id="gjoin2025")
+    @discord.ui.button(label="شرکت در گیواوی", style=discord.ButtonStyle.blurple, emoji="Party Popper", custom_id="gw_join_2025")
     async def join(self, interaction: discord.Interaction, button: Button):
         gw = giveaways.get(interaction.message.id)
-        if not gw: return
+        if not gw:
+            return
 
         if interaction.user.id in gw["entries"]:
             return await interaction.response.send_message("قبلاً شرکت کردی!", ephemeral=True)
@@ -349,27 +350,25 @@ class GView(View):
         gw["entries"].append(interaction.user.id)
 
         embed = interaction.message.embeds[0]
-        embed.set_footer = f"شرکت کرده: {len(gw['entries'])} نفر • پایان:"
-        embed.set_footer(text=embed_footer)
-
+        embed.set_footer(text=f"شرکت کرده: {len(gw['entries'])} نفر")
         await interaction.response.edit_message(embed=embed, view=self)
 
     async def on_timeout(self):
         gw = giveaways.get(self.message.id)
-        if not gw or len(gw["entries"]) == 0:
-            await self.message.edit(content="گیواوی لغو شد — کسی شرکت نکرد!", embed=None, view=None)
+        if not gw or not gw["entries"]:
+            await self.message.edit(content="گیواوی لغو شد — کسی شرکت نکرد", embed=None, view=None)
             return
 
         import random
-        winners_list = random.sample(gw["entries"], k=min(gw["winners"], len(gw["entries"])))
-        winners_mention = " ".join([f"<@{u}>" for u in winners_list])
+        winners = random.sample(gw["entries"], k=min(gw["winners"], len(gw["entries"])))
+        mention = " ".join([f"<@{u}>" for u in winners])
 
         await self.message.edit(
-            content=f"گیواوی تموم شد!\nبرنده‌ها: {winners_mention}\nجایزه: **{gw['prize']}**",
+            content=f"گیواوی تموم شد!\nبرنده‌ها: {mention}\nجایزه: **{gw['prize']}**",
             embed=None,
             view=None
         )
-        await self.message.reply(f"تبریک به برنده‌ها! {winners_mention}")
+        await self.message.reply(f"تبریک به برنده‌ها! {mention}")
 # ——————————————————— آماده شدن بات ———————————————————
 @bot.event
 async def on_ready():
