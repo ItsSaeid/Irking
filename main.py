@@ -66,16 +66,22 @@ class CloseView(View):
         await interaction.response.defer(ephemeral=True)
         await interaction.channel.delete()
 
-        giveaways = {}
+giveaways = {}
 
+# ——————————————————— !giveaway (با !) ———————————————————
+@bot.command()
+@commands.has_permissions(administrator=True)
+async def giveaway(ctx, time: str, winners: int, *, prize: str):
+    await start_giveaway(ctx, time, winners, prize)
+
+# ——————————————————— /giveaway (اسلش) ———————————————————
 @bot.tree.command(name="giveaway", description="ساخت گیواوی حرفه‌ای")
-@app_commands.describe(
-    time="مدت زمان (مثلاً 24h, 30m, 2d)",
-    winners="تعداد برنده",
-    prize="جایزه"
-)
-async def giveaway(interaction: discord.Interaction, time: str, winners: int, prize: str):
-    # تبدیل زمان
+@app_commands.describe(time="زمان (مثلاً 24h)", winners="تعداد برنده", prize="جایزه")
+async def slash_giveaway(interaction: discord.Interaction, time: str, winners: int, prize: str):
+    await start_giveaway(interaction, time, winners, prize)
+
+# تابع مشترک برای هر دو
+async def start_giveaway(source, time: str, winners: int, prize: str):
     try:
         if time.endswith('s'): secs = int(time[:-1])
         elif time.endswith('m'): secs = int(time[:-1]) * 60
@@ -83,7 +89,10 @@ async def giveaway(interaction: discord.Interaction, time: str, winners: int, pr
         elif time.endswith('d'): secs = int(time[:-1]) * 86400
         else: secs = 86400
     except:
-        return await interaction.response.send_message("زمان اشتباهه! مثال: `24h`", ephemeral=True)
+        if isinstance(source, commands.Context):
+            return await source.send("زمان اشتباهه! مثال: `24h`")
+        else:
+            return await source.response.send_message("زمان اشتباهه! مثال: `24h`", ephemeral=True)
 
     end_time = datetime.utcnow() + timedelta(seconds=secs)
 
@@ -93,14 +102,17 @@ async def giveaway(interaction: discord.Interaction, time: str, winners: int, pr
         color=0x00ff00,
         timestamp=end_time
     )
-    embed.set_author(name="Giveaway جدید!", icon_url=interaction.user.display_avatar.url)
+    embed.set_author(name="Giveaway جدید!", icon_url="https://i.imgur.com/2Z2yM9c.gif")
     embed.set_thumbnail(url="https://i.imgur.com/2Z2yM9c.gif")
     embed.set_footer(text="شرکت کرده: 0 نفر")
 
-    view = SlashGiveawayView()
-    await interaction.response.send_message(embed=embed, view=view)
+    view = GiveawayView()
+    if isinstance(source, commands.Context):
+        msg = await source.send(embed=embed, view=view)
+    else:
+        await source.response.send_message(embed=embed, view=view)
+        msg = await source.original_response()
 
-    msg = await interaction.original_response()
     giveaways[msg.id] = {
         "end": end_time,
         "winners": winners,
@@ -109,11 +121,11 @@ async def giveaway(interaction: discord.Interaction, time: str, winners: int, pr
         "msg": msg
     }
 
-class SlashGiveawayView(View):
+class GiveawayView(View):
     def __init__(self):
         super().__init__(timeout=None)
 
-    @discord.ui.button(label="Enter", style=discord.ButtonStyle.green, emoji="Party Popper", custom_id="slash_enter_gw")
+    @discord.ui.button(label="Enter", style=discord.ButtonStyle.green, emoji="Party Popper", custom_id="enter_gw_final2025")
     async def enter(self, interaction: discord.Interaction, button: Button):
         gw = giveaways.get(interaction.message.id)
         if not gw: return
