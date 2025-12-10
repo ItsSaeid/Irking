@@ -534,6 +534,132 @@ async def role(ctx, member: discord.Member, role: discord.Role):
         await member.add_roles(role)
         await ctx.send(f"رول {role.name} به {member.mention} داده شد")
 
+        @bot.event
+async def on_message(msg):
+    if msg.author.bot: return
+    user_id = str(msg.author.id)
+    if user_id not in levels:
+        levels[user_id] = {"xp": 0, "level": 0}
+    levels[user_id]["xp"] += 5  # هر پیام 5 XP
+    lvl = int((levels[user_id]["xp"] // 100) ** 0.5) + 1
+    if lvl > levels[user_id]["level"]:
+        levels[user_id]["level"] = lvl
+        await msg.channel.send(f"تبریک {msg.author.mention}! لِوِلت شد **{lvl}** ")
+    await bot.process_commands(msg)
+
+@bot.command()
+async def level(ctx, member: discord.Member = None):
+    member = member or ctx.author
+    user_id = str(member.id)
+    data = levels.get(user_id, {"xp": 0, "level": 0})
+    embed = discord.Embed(title=f"لِوِل {member.display_name}", color=0x00ffff)
+    embed.add_field(name="لِوِل", value=data["level"], inline=True)
+    embed.add_field(name="XP", value=f"{data['xp']} / {(data['level']**2)*100}", inline=True)
+    await ctx.send(embed=embed)
+
+@bot.command()
+async def leaderboard(ctx):
+    sorted_levels = sorted(levels.items(), key=lambda x: x[1]["level"], reverse=True)[:10]
+    text = "\n".join([f"{i+1}. <@{uid}> — لِوِل {data['level']} ({data['xp']} XP)" for i, (uid, data) in enumerate(sorted_levels)])
+    embed = discord.Embed(title="لیدربورد لِوِل", description=text or "هیچ کس هنوز لِوِل نداره!", color=0xff9900)
+    await ctx.send(embed=embed)
+
+# 2. تبریک بوست + رول ویژه
+@bot.event
+async def on_member_update(before, after):
+    if len(before.roles) < len(after.roles):
+        new_role = next(role for role in after.roles if role not in before.roles)
+        if new_role.is_premium_subscriber():
+            await after.send(f"ممنون {after.mention} که سرور رو بوست کردی! ")
+            channel = bot.get_channel(123456789012345678)  # چنل اعلانات رو بذار
+            if channel:
+                await channel.send(f"تبریک به {after.mention} برای بوست سرور! ")
+
+# 3. سیستم Verify با دکمه (ضد رید)
+class VerifyView(View):
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    @discord.ui.button(label="تأیید", style=discord.ButtonStyle.green, emoji="Check Mark Button", custom_id="verify_btn")
+    async def verify(self, interaction: discord.Interaction, button: Button):
+        role = discord.utils.get(interaction.guild.roles, name="Member")  # رول عضو
+        if not role:
+            role = await interaction.guild.create_role(name="Member")
+        await interaction.user.add_roles(role)
+        await interaction.response.send_message("تأیید شدی! خوش اومدی ", ephemeral=True)
+
+@bot.command()
+@commands.has_permissions(administrator=True)
+async def verify_panel(ctx):
+    embed = discord.Embed(title="تأیید هویت", description="برای دسترسی به سرور روی دکمه بزنید", color=0x00ff00)
+    await ctx.send(embed=embed, view=VerifyView())
+
+# 4. AFK سیستم
+afk_users = {}
+
+@bot.event
+async def on_message(msg):
+    if msg.author.id in afk_users:
+        del afk_users[msg.author.id]
+        await msg.channel.send(f"{msg.author.mention} برگشتی! آفک برداشته شد")
+    for member in msg.mentions:
+        if member.id in afk_users:
+            await msg.channel.send(f"{member.mention} الان آفکه: {afk_users[member.id]}")
+    await bot.process_commands(msg)
+
+@bot.command()
+async def afk(ctx, *, reason="آفک"):
+    afk_users[ctx.author.id] = reason
+    await ctx.send(f"{ctx.author.mention} الان آفکه: {reason}")
+
+# 5. !ping — پینگ بات
+@bot.command()
+async def ping(ctx):
+    latency = round(bot.latency * 1000)
+    await ctx.send(f"پینگ بات: **{latency}ms**")
+
+# 6. !uptime — زمان آنلاین بودن بات
+start_time = datetime.utcnow()
+
+@bot.command()
+async def uptime(ctx):
+    delta = datetime.utcnow() - start_time
+    hours, remainder = divmod(int(delta.total_seconds()), 3600)
+    minutes, seconds = divmod(remainder, 60)
+    days, hours = divmod(hours, 24)
+    await ctx.send(f"بات **{days} روز، {hours} ساعت، {minutes} دقیقه** آنلاینه!")
+
+# 7. !help خفن
+@bot.command()
+async def help(ctx):
+    embed = discord.Embed(title="راهنمای بات IrKing", color=0x5865f2)
+    embed.add_field(name="تیکت", value="!ticketpanel", inline=False)
+    embed.add_field(name="گیواوی", value="!giveaway زمان تعداد جایزه", inline=False)
+    embed.add_field(name="نظرسنجی", value="!vote سوال", inline=False)
+    embed.add_field(name="فروشگاه", value="!shop", inline=False)
+    embed.add_field(name="سرور", value="!ip • !serverinfo • !wipe", inline=False)
+    embed.add_field(name="مدیریت", value="!say • !clear • !kick • !ban • !mute", inline=False)
+    embed.add_field(name="دیگر", value="!ping • !uptime • !level • !avatar", inline=False)
+    await ctx.send(embed=embed)
+
+# 8. !announce — اعلان با @everyone
+@bot.command()
+@commands.has_permissions(administrator=True)
+async def announce(ctx, *, text):
+    await ctx.send("@everyone")
+    await ctx.send(text)
+
+# حتماً این خط تو on_ready باشه
+@bot.event
+async def on_ready():
+    print(f"بات {bot.user} آنلاین شد!")
+    await bot.change_presence(activity=discord.Game("connect irkings.top"))
+    bot.add_view(TicketSelectView())
+    bot.add_view(CloseView())
+    bot.add_view(VoteView())
+    bot.add_view(GiveawayView())
+    bot.add_view(VerifyView())  # برای verify
+
 # ——————————————————— on_ready ———————————————————
 @bot.event
 async def on_ready():
