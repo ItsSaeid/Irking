@@ -183,11 +183,9 @@ async def shop(ctx):
 @commands.has_permissions(administrator=True)
 async def say(ctx, *, text=None):
     if not text:
-        return
-    try:
-        await ctx.message.delete()
-    except:
-        pass
+        return await ctx.send("یه چیزی بنویس بعدش!")
+
+    # پیام خودت رو پاک نکن — فقط متن رو بفرست
     await ctx.send(text, allowed_mentions=discord.AllowedMentions.none())
 
 # ——————————————————— دستور !vote (مثل ProBot) ———————————————————
