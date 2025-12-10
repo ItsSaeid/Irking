@@ -297,79 +297,79 @@ async def on_ready():
 async def ip(ctx):
     await ctx.send(embed=discord.Embed(title="آدرس سرور", description="```connect irkings.top```", color=0xff9900))
 
+giveaways = {}  # ذخیره گیواوی‌ها
+
 @bot.command()
 @commands.has_permissions(administrator=True)
 async def giveaway(ctx, time: str, winners: int, *, prize: str):
     # تبدیل زمان به ثانیه
     try:
-        if time.endswith('s'): seconds = int(time[:-1])
-        elif time.endswith('m'): seconds = int(time[:-1]) * 60
-        elif time.endswith('h'): seconds = int(time[:-1]) * 3600
-        elif time.endswith('d'): seconds = int(time[:-1]) * 86400
-        else: seconds = int(time) * 3600
+        if time.endswith('s'): secs = int(time[:-1])
+        elif time.endswith('m'): secs = int(time[:-1]) * 60
+        elif time.endswith('h'): secs = int(time[:-1]) * 3600
+        elif time.endswith('d'): secs = int(time[:-1]) * 86400
+        else: raise ValueError
     except:
         return await ctx.send("زمان اشتباهه! مثال: `1h`, `30m`, `2d`")
 
-    end_time = datetime.utcnow() + timedelta(seconds=seconds)
+    end = datetime.utcnow() + timedelta(seconds=secs)
 
     embed = discord.Embed(
         title="جایزه ویژه!",
-        description=f"**{prize}**\n\nتعداد برنده: **{winners} نفر**\nزمان باقی‌مانده: **{time}**",
+        description=f"**{prize}**\n\nبرای شرکت روی دکمه زیر بزنید\nبرنده‌ها: **{winners} نفر**\nزمان باقی‌مونده: **{time}**",
         color=0xff9f00,
-        timestamp=end_time
+        timestamp=end
     )
-    embed.set_thumbnail(url="https://i.imgur.com/2Z2yM9c.gif")
-    embed.set_image(url="https://i.imgur.com/0Xj3Y1v.gif")
-    embed.set_footer(text="برای شرکت روی دکمه زیر کلیک کنید • شرکت کرده: 0 نفر")
+    embed.set_thumbnail(url="https://i.imgur.com/JKf8c5x.gif")
+    embed.set_footer(text="شرکت کرده: 0 نفر • پایان:")
 
-    view = GiveawayView()
+    view = GView()
     msg = await ctx.send(embed=embed, view=view)
 
-    # ذخیره گیواوی
-    active_giveaways[msg.id] = {
-        "end": end_time,
+    giveaways[msg.id] = {
+        "end": end,
         "winners": winners,
         "prize": prize,
         "entries": [],
-        "message": msg
+        "msg": msg
     }
 
-class GiveawayView(View):
+class GView(View):
     def __init__(self):
         super().__init__(timeout=None)
 
-    @discord.ui.button(label="شرکت در گیواوی", style=discord.ButtonStyle.blurple, emoji="Party Popper", custom_id="giveaway_join_2025")
+    @discord.ui.button(label="شرکت در گیواوی", style=discord.ButtonStyle.blurple, emoji="Party Popper", custom_id="gjoin2025")
     async def join(self, interaction: discord.Interaction, button: Button):
-        gw = active_giveaways.get(interaction.message.id)
-        if not gw:
-            return
+        gw = giveaways.get(interaction.message.id)
+        if not gw: return
 
         if interaction.user.id in gw["entries"]:
-            return await interaction.response.send_message("شما قبلاً شرکت کردید!", ephemeral=True)
+            return await interaction.response.send_message("قبلاً شرکت کردی!", ephemeral=True)
 
         gw["entries"].append(interaction.user.id)
 
         embed = interaction.message.embeds[0]
-        embed.set_footer(text=f"برای شرکت روی دکمه زیر کلیک کنید • شرکت کرده: {len(gw['entries'])} نفر")
+        embed.set_footer = f"شرکت کرده: {len(gw['entries'])} نفر • پایان:"
+        embed.set_footer(text=embed_footer)
+
         await interaction.response.edit_message(embed=embed, view=self)
 
     async def on_timeout(self):
-        gw = active_giveaways.get(self.message.id)
+        gw = giveaways.get(self.message.id)
         if not gw or len(gw["entries"]) == 0:
             await self.message.edit(content="گیواوی لغو شد — کسی شرکت نکرد!", embed=None, view=None)
             return
 
         import random
-        winner_ids = random.sample(gw["entries"], k=min(gw["winners"], len(gw["entries"])))
-        winners = [f"<@{uid}>" for uid in winner_ids]
+        winners_list = random.sample(gw["entries"], k=min(gw["winners"], len(gw["entries"])))
+        winners_mention = " ".join([f"<@{u}>" for u in winners_list])
 
         await self.message.edit(
-            content=f"گیواوی تموم شد!\nبرنده(ها): {' • '.join(winners)}\nجایزه: **{gw['prize']}**",
+            content=f"گیواوی تموم شد!\nبرنده‌ها: {winners_mention}\nجایزه: **{gw['prize']}**",
             embed=None,
             view=None
         )
-        await self.message.reply(f"تبریک به برنده‌ها! {' '.join(winners)}")
-
+        await self.message.reply(f"تبریک به برنده‌ها! {winners_mention}")
 # ——————————————————— آماده شدن بات ———————————————————
 @bot.event
 async def on_ready():
