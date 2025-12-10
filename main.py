@@ -196,8 +196,8 @@ async def vote(ctx, *, text=None):
     embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar.url or None)
     if image_url:
         embed.set_image(url=image_url)
-    embed.add_field(name="آره", value="0 رای", inline=True)
-    embed.add_field(name="نه", value="0 رای", inline=True)
+    embed.add_field(name="1", value="0 رای", inline=True)
+    embed.add_field(name="2", value="0 رای", inline=True)
 
     view = VoteView()
     msg = await ctx.send(embed=embed, view=view)
@@ -217,19 +217,19 @@ class VoteView(View):
         embed.set_field_at(1, name=f"نه ({100-yes_p}%)", value=str(data["no"]), inline=True)
         await interaction.response.edit_message(embed=embed, view=self)
 
-    @discord.ui.button(label="آره", style=discord.ButtonStyle.green, emoji="✅", custom_id="yes2025")
+    @discord.ui.button(label="1", style=discord.ButtonStyle.green, emoji="✅", custom_id="yes2025")
     async def yes(self, interaction):
         data = votes.get(interaction.message.id)
         if data and interaction.user.id not in data["voters"]:
-            data["yes"] += 1
+            data["1"] += 1
             data["voters"].add(interaction.user.id)
             await self.update(interaction)
 
-    @discord.ui.button(label="نه", style=discord.ButtonStyle.red, emoji="❌", custom_id="no2025")
+    @discord.ui.button(label="2", style=discord.ButtonStyle.red, emoji="❌", custom_id="no2025")
     async def no(self, interaction):
         data = votes.get(interaction.message.id)
         if data and interaction.user.id not in data["voters"]:
-            data["no"] += 1
+            data["2"] += 1
             data["voters"].add(interaction.user.id)
             await self.update(interaction)
 
