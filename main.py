@@ -190,49 +190,41 @@ async def say(ctx, *, text=None):
 
 
 
-# فقط این قسمت رو جایگزین کن (100٪ کار می‌کنه)
-
 votes = {}
 
 @bot.command()
 @commands.has_permissions(administrator=True)
 async def vote(ctx, *, args=None):
     if not args:
-        return await ctx.send("`!vote سوال | زمان (مثلاً 100h) | عکس`")
+        return await ctx.send("`!vote سوال | زمان | عکس`")
 
-    # جدا کردن زمان و عکس
-    import re
-    duration = 86400  # پیش‌فرض 24 ساعت
+    # پیش‌فرض
+    duration = 86400  # 24 ساعت
     image_url = None
     question = args
 
-    # زمان (مثلاً 100h)
-    time_match = re.search(r"(\d+)([hmd])", args.lower())
-    if time_match:
-        num = int(time_match.group(1))
-        unit = time_match.group(2)
-        if unit == 'h': duration = num * 3600
-        elif unit == 'm': duration = num * 60
-        elif unit == 'd': duration = num * 86400
+    import re
+
+    # تشخیص زمان (حتی 100h, 999h, 5000h)
+    match = re.search(r"(\d+)([hmd])", args.lower())
+    if match:
+        num = int(match.group(1))
+        unit = match.group(2)
+        if unit == "h": duration = num * 3600
+        elif unit == "m": duration = num * 60
+        elif unit == "d": duration = num * 86400
         question = re.sub(r"\d+[hmd]\s*", "", question, count=1).strip()
 
-    # عکس
-    url_match = re.search(r"(https?://\S+\.(?:png|jpg|jpeg|gif|webp))", args)
+    # تشخیص عکس
+    url_match = re.search(r"https?://[^\s]+", args)
     if url_match:
-        image_url = url_match.group(1)
+        image_url = url_match.group(0)
         question = question.replace(image_url, "").strip()
 
     if not question.strip():
         return await ctx.send("سوال رو بنویس!")
 
-    end_time = datetime.utcnow() + timedelta(seconds=duration)
-
-    embed = discord.Embed(
-        title="نظرسنجی جدید",
-        description=f"**{question}**",
-        color=0x00ffff,
-        timestamp=end_time
-    )
+    embed = discord.Embed(title="نظرسنجی", description=f"**{question}**", color=0x00eeff, timestamp=datetime.utcnow() + timedelta(seconds=duration))
     embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar.url or None)
     if image_url:
         embed.set_image(url=image_url)
@@ -242,8 +234,7 @@ async def vote(ctx, *, args=None):
 
     view = VoteView()
     msg = await ctx.send(embed=embed, view=view)
-
-    votes[msg.id] = {"yes":0, "no":0, "voters":set()}
+    votes[msg.id] = {"yes": 0, "no": 0, "voters": set()}
 
 class VoteView(View):
     def __init__(self):
@@ -253,41 +244,38 @@ class VoteView(View):
         data = votes.get(interaction.message.id)
         if not data: return
         total = data["yes"] + data["no"]
-        yes_p = int(data["yes"]/total*100) if total else 0
+        yes_p = round(data["yes"] / total * 100) if total else 0
         no_p = 100 - yes_p
-        yes_bar = "🟩"* (yes_p//10) + "⬜"*(10-yes_p//10)
-        no_bar = "🟥"* (no_p//10) + "⬜"*(10-no_p//10)
+        yes_bar = "🟩" * (yes_p//10) + "⬜" * (10 - yes_p//10)
+        no_bar = "🟥" * (no_p//10) + "⬜" * (10 - no_p//10)
 
         embed = interaction.message.embeds[0]
         embed.set_field_at(0, name=f"آره ({yes_p}%)", value=f"{yes_bar} {data['yes']} رای", inline=True)
         embed.set_field_at(1, name=f"نه ({no_p}%)", value=f"{no_bar} {data['no']} رای", inline=True)
         await interaction.response.edit_message(embed=embed, view=self)
 
-    @discord.ui.button(label="آره", style=discord.ButtonStyle.green, emoji="Check Mark Button", custom_id="v_yes_2025")
+    @discord.ui.button(label="آره", style=discord.ButtonStyle.green, emoji="Check Mark Button", custom_id="vyes2025")
     async def yes(self, interaction):
         data = votes.get(interaction.message.id)
         if data and interaction.user.id not in data["voters"]:
             data["yes"] += 1
             data["voters"].add(interaction.user.id)
             await self.update(interaction)
-        else:
-            await interaction.response.send_message("قبلاً رای دادی!", ephemeral=True)
 
-    @discord.ui.button(label="نه", style=discord.ButtonStyle.red, emoji="Cross Mark", custom_id="v_no_2025")
+    @discord.ui.button(label="نه", style=discord.ButtonStyle.red, emoji="Cross Mark", custom_id="vno2025")
     async def no(self, interaction):
         data = votes.get(interaction.message.id)
         if data and interaction.user.id not in data["voters"]:
             data["no"] += 1
             data["voters"].add(interaction.user.id)
             await self.update(interaction)
-        else:
-            await interaction.response.send_message("قبلاً رای دادی!", ephemeral=True)
 
+# این خط رو حتماً تو on_ready داشته باش
 @bot.event
 async def on_ready():
     print(f"بات {bot.user} آنلاین شد!")
     await bot.change_presence(activity=discord.Game("connect irkings.top"))
-    bot.add_view(VoteView())  # بدون این خط کار نمی‌کنه!
+    bot.add_view(VoteView())  # بدون این خط هیچی کار نمی‌کنه!
 
 # ——————————————————— دستورات دیگر ———————————————————
 @bot.command()
