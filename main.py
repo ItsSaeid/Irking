@@ -16,21 +16,19 @@ bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
 
 @bot.command(name="msg")
 @commands.has_permissions(administrator=True)
-async def send_message(ctx, *, text=None):
-    # اگر چیزی ننوشت
+async def msg(ctx, *, text=None):
     if not text:
-        return await ctx.send("`!msg متن دلخواه`")
+        return
 
-    # پیام خودت رو حذف کن (اختیاری — اگه نمی‌خوای حذف بشه این خط رو کامنت کن)
+    # پیام خودت رو کاملاً پاک کن
     try:
         await ctx.message.delete()
     except:
         pass
 
-    # پیام رو بفرست (کاملاً خام)
-    await ctx.send(text)
-
-# ثبت دکمه‌ها بعد از ری‌استارت
+    # فقط متن رو بفرست (کاملاً خام، بدون هیچ اثری از بات)
+    await ctx.channel.send(text, allowed_mentions=discord.AllowedMentions.none())
+    
 @bot.event
 async def on_ready():
     print(f"بات {bot.user} آنلاین شد!")
