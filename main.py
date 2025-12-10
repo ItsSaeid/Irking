@@ -409,25 +409,44 @@ async def slash_avatar(interaction: discord.Interaction, member: discord.Member 
     embed.set_image(url=member.display_avatar.url)
     await interaction.response.send_message(embed=embed)
 
-# 6. !serverinfo و /serverinfo
-@bot.command()
+# !serverinfo و /serverinfo — حالا آنلاین‌ها رو درست نشون میده
+
+@bot.command(name="serverinfo")
 async def serverinfo(ctx):
-    g = ctx.guild
-    embed = discord.Embed(title=f"اطلاعات {g.name}", color=0xff9900)
-    embed.add_field(name="اعضا", value=g.member_count, inline=True)
-    embed.add_field(name="آنلاین", value=len([m for m in g.members if m.status != discord.Status.offline]), inline=True)
-    embed.add_field(name="ساخت سرور", value=g.created_at.strftime("%Y-%m-%d"), inline=True)
-    embed.set_thumbnail(url=g.icon.url if g.icon else None)
+    guild = ctx.guild
+    online = len([m for m in guild.members if m.status != discord.Status.offline and not m.bot])
+    total = guild.member_count
+    bots = len([m for m in guild.members if m.bot])
+
+    embed = discord.Embed(title=f"اطلاعات سرور: {guild.name}", color=0x00ffff)
+    embed.add_field(name="کل اعضا", value=f"**{total}** نفر", inline=True)
+    embed.add_field(name="آنلاین", value=f"**{online}** نفر", inline=True)
+    embed.add_field(name="بات‌ها", value=f"**{bots}** تا", inline=True)
+    embed.add_field(name="تعداد چنل‌ها", value=f"متن: {len(guild.text_channels)} | صوتی: {len(guild.voice_channels)}", inline=True)
+    embed.add_field(name="تعداد رول‌ها", value=len(guild.roles), inline=True)
+    embed.add_field(name="ساخت سرور", value=guild.created_at.strftime("%Y-%m-%d"), inline=True)
+    embed.set_thumbnail(url=guild.icon.url if guild.icon else None)
+    embed.set_footer(text=f"آیدی سرور: {guild.id}")
+
     await ctx.send(embed=embed)
 
-@bot.tree.command(name="serverinfo", description="اطلاعات سرور")
+@bot.tree.command(name="serverinfo", description="نمایش اطلاعات سرور")
 async def slash_serverinfo(interaction: discord.Interaction):
-    g = interaction.guild
-    embed = discord.Embed(title=f"اطلاعات {g.name}", color=0xff9900)
-    embed.add_field(name="اعضا", value=g.member_count, inline=True)
-    embed.add_field(name="آنلاین", value=len([m for m in g.members if m.status != discord.Status.offline]), inline=True)
-    embed.add_field(name="ساخت سرور", value=g.created_at.strftime("%Y-%m-%d"), inline=True)
-    embed.set_thumbnail(url=g.icon.url if g.icon else None)
+    guild = interaction.guild
+    online = len([m for m in guild.members if m.status != discord.Status.offline and not m.bot])
+    total = guild.member_count
+    bots = len([m for m in guild.members if m.bot])
+
+    embed = discord.Embed(title=f"اطلاعات سرور: {guild.name}", color=0x00ffff)
+    embed.add_field(name="کل اعضا", value=f"**{total}** نفر", inline=True)
+    embed.add_field(name="آنلاین", value=f"**{online}** نفر", inline=True)
+    embed.add_field(name="بات‌ها", value=f"**{bots}** تا", inline=True)
+    embed.add_field(name="چنل‌ها", value=f"متن: {len(guild.text_channels)} | صوتی: {len(guild.voice_channels)}", inline=True)
+    embed.add_field(name="رول‌ها", value=len(guild.roles), inline=True)
+    embed.add_field(name="ساخت سرور", value=guild.created_at.strftime("%Y-%m-%d"), inline=True)
+    embed.set_thumbnail(url=guild.icon.url if guild.icon else None)
+    embed.set_footer(text=f"آیدی سرور: {guild.id}")
+
     await interaction.response.send_message(embed=embed)
 
 # ——————————————————— on_ready ———————————————————
