@@ -449,6 +449,91 @@ async def slash_serverinfo(interaction: discord.Interaction):
 
     await interaction.response.send_message(embed=embed)
 
+    @bot.command()
+@commands.has_permissions(manage_messages=True)
+async def mute(ctx, member: discord.Member, time: str = None, *, reason="بدون دلیل"):
+    role = discord.utils.get(ctx.guild.roles, name="Muted")
+    if not role:
+        role = await ctx.guild.create_role(name="Muted", reason="برای mute")
+        for channel in ctx.guild.channels:
+            await channel.set_permissions(role, send_messages=False, speak=False)
+    
+    duration = None
+    if time:
+        try:
+            if time.endswith('m'): duration = int(time[:-1]) * 60
+            elif time.endswith('h'): duration = int(time[:-1]) * 3600
+            elif time.endswith('d'): duration = int(time[:-1]) * 86400
+        except: duration = None
+    
+    await member.add_roles(role, reason=reason)
+    await ctx.send(f"{member.mention} سایلنت شد! مدت: {time or 'دائم'} | دلیل: {reason}")
+    
+    if duration:
+        await asyncio.sleep(duration)
+        await member.remove_roles(role)
+
+@bot.tree.command(name="mute", description="سایلنت کردن کاربر")
+@app_commands.describe(member="کاربر", time="زمان (مثلاً 30m)", reason="دلیل")
+async def slash_mute(interaction: discord.Interaction, member: discord.Member, time: str = None, reason: str = "بدون دلیل"):
+    # همون کد بالا (کوتاه شده برای اسلش)
+
+# 2. !warn و /warn — هشدار دادن + سیستم وارن
+warns = {}
+@bot.command()
+@commands.has_permissions(manage_messages=True)
+async def warn(ctx, member: discord.Member, *, reason="بدون دلیل"):
+    user_id = str(member.id)
+    if user_id not in warns: warns[user_id] = []
+    warns[user_id].append({"reason": reason, "by": ctx.author.name, "time": datetime.now().strftime("%Y-%m-%d %H:%M")})
+    count = len(warns[user_id])
+    await ctx.send(f"{member.mention} وارن شد! ({count} از 3)\nدلیل: {reason}")
+    if count >= 3:
+        await member.kick(reason="3 وارن")
+        await ctx.send(f"{member.mention} به خاطر 3 وارن کیک شد!")
+
+# 3. !warns — دیدن وارن‌ها
+@bot.command()
+async def warns(ctx, member: discord.Member = None):
+    if not member: member = ctx.author
+    user_id = str(member.id)
+    w = warns.get(user_id, [])
+    if not w:
+        return await ctx.send(f"{member.mention} هیچ وارنی نداره!")
+    text = "\n".join([f"{i+1}. {warn['reason']} — توسط {warn['by']} — {warn['time']}" for i, warn in enumerate(w)])
+    await ctx.send(f"وارن‌های {member.mention} ({len(w)}):\n{text}")
+
+# 4. !slowmode — اسلومود چنل
+@bot.command()
+@commands.has_permissions(manage_channels=True)
+async def slowmode(ctx, seconds: int = 0):
+    await ctx.channel.edit(slowmode_delay=seconds)
+    await ctx.send(f"اسلومود چنل: **{seconds} ثانیه**")
+
+# 5. !lock و !unlock — قفل/باز کردن چنل
+@bot.command()
+@commands.has_permissions(manage_channels=True)
+async def lock(ctx):
+    await ctx.channel.set_permissions(ctx.guild.default_role, send_messages=False)
+    await ctx.send("چنل قفل شد!")
+
+@bot.command()
+@commands.has_permissions(manage_channels=True)
+async def unlock(ctx):
+    await ctx.channel.set_permissions(ctx.guild.default_role, send_messages=True)
+    await ctx.send("چنل باز شد!")
+
+# 6. !role — دادن/گرفتن رول
+@bot.command()
+@commands.has_permissions(manage_roles=True)
+async def role(ctx, member: discord.Member, role: discord.Role):
+    if role in member.roles:
+        await member.remove_roles(role)
+        await ctx.send(f"رول {role.name} از {member.mention} برداشته شد")
+    else:
+        await member.add_roles(role)
+        await ctx.send(f"رول {role.name} به {member.mention} داده شد")
+
 # ——————————————————— on_ready ———————————————————
 @bot.event
 async def on_ready():
