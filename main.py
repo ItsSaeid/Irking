@@ -649,16 +649,6 @@ async def announce(ctx, *, text):
     await ctx.send("@everyone")
     await ctx.send(text)
 
-# حتماً این خط تو on_ready باشه
-@bot.event
-async def on_ready():
-    print(f"بات {bot.user} آنلاین شد!")
-    await bot.change_presence(activity=discord.Game("connect irkings.top"))
-    bot.add_view(TicketSelectView())
-    bot.add_view(CloseView())
-    bot.add_view(VoteView())
-    bot.add_view(GiveawayView())
-    bot.add_view(VerifyView())  # برای verify
 
 # ——————————————————— on_ready ———————————————————
 @bot.event
@@ -668,6 +658,8 @@ async def on_ready():
     bot.add_view(TicketSelectView())
     bot.add_view(CloseView())
     bot.add_view(VoteView())
+    bot.add_view(GiveawayView())
+    bot.add_view(VerifyView())
 
 # ——————————————————— اجرا ———————————————————
 bot.run(os.getenv("TOKEN") or "توکن_بات_تو")
