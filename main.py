@@ -12,22 +12,16 @@ intents.message_content = True
 intents.members = True
 intents.guilds = True
 
-bot = commands.Bot(command_prefix="!", intents=intents, help_command=None)
-
-@bot.command(name="msg")
+@bot.command(name="say")  # فقط اینو عوض کن
 @commands.has_permissions(administrator=True)
-async def msg(ctx, *, text=None):
+async def say(ctx, *, text=None):
     if not text:
         return
-
-    # پیام خودت رو کاملاً پاک کن
     try:
         await ctx.message.delete()
     except:
         pass
-
-    # فقط متن رو بفرست (کاملاً خام، بدون هیچ اثری از بات)
-    await ctx.channel.send(text, allowed_mentions=discord.AllowedMentions.none())
+    await ctx.send(text, allowed_mentions=discord.AllowedMentions.none())
     
 @bot.event
 async def on_ready():
