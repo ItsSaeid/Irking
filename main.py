@@ -275,6 +275,90 @@ async def cart(ctx):
     embed.add_field(name="به نام", value="**فرهاد حسینی**", inline=False)
     await ctx.send(embed=embed)
 
+@bot.command()
+@commands.has_permissions(administrator=True)
+async def giveaway(ctx, time: str = None, winners: int = 1, *, prize=None):
+    if not time or not prize:
+        return await ctx.send("`!giveaway زمان تعداد_برنده جایزه`\nمثال: `!giveaway 24h 3 رنک Overlord`")
+
+    # تبدیل زمان به ثانیه
+    try:
+        duration = 0
+        if time.endswith("h"): duration = int(time[:-1]) * 3600
+        elif time.endswith("m"): duration = int(time[:-1]) * 60
+        elif time.endswith("d"): duration = int(time[:-1]) * 86400
+        else: duration = int(time)
+    except:
+        return await ctx.send("زمان اشتباهه! مثلاً: 24h, 30m, 1d")
+
+    # ایمبد خفن مثل ProBot
+    embed = discord.Embed(
+        title="جایزه ویژه!",
+        description=f"**{prize}**\n\nبرای شرکت روی دکمه شرکت بزنید\nتعداد برنده: **{winners} نفر**\nزمان باقی‌مونده: **{time}**",
+        color=0xff9f00,
+        timestamp=datetime.utcnow() + timedelta(seconds=duration)
+    )
+    embed.set_author(name="Giveaway جدید!", icon_url="https://i.imgur.com/2Z2yM9c.gif")
+    embed.set_image(url="https://i.imgur.com/0Xj3Y1v.gif")  # گیف جشن
+    embed.set_footer(text=f"پایان: • شرکت کرده: 0 نفر")
+
+    view = GiveawayView(duration, winners, prize)
+    msg = await ctx.send(embed=embed, view=view)
+
+    # ذخیره گیواوی
+    active_giveaways[msg.id] = {
+        "end": datetime.utcnow() + timedelta(seconds=duration),
+        "winners": winners,
+        "prize": prize,
+        "entries": [],
+        "message": msg
+    }
+
+# ذخیره گیواوی‌ها (بعد از ری‌استارت هم بمونه)
+active_giveaways = {}
+
+class GiveawayView(View):
+    def __init__(self, duration, winners, prize):
+        super().__init__(timeout=duration)
+        self.entries = []
+
+    @discord.ui.button(label="شرکت در گیواوی", style=discord.ButtonStyle.blurple, emoji="Party Popper", custom_id="giveaway_enter")
+    async def enter(self, interaction: discord.Interaction, button: Button):
+        if interaction.user.id in self.entries:
+            return await interaction.response.send_message("شما قبلاً شرکت کردید!", ephemeral=True)
+        
+        self.entries.append(interaction.user.id)
+        await interaction.response.send_message("با موفقیت شرکت کردید!", ephemeral=True)
+        
+        # آپدیت تعداد شرکت‌کننده‌ها
+        embed = interaction.message.embeds[0]
+        embed.set_footer(text=f"پایان: • شرکت کرده: {len(self.entries)} نفر")
+        await interaction.message.edit(embed=embed)
+
+    async def on_timeout(self):
+        data = active_giveaways.get(self.message.id)
+        if not data or not self.entries: 
+            await self.message.edit(content="گیواوی لغو شد — کسی شرکت نکرد!", view=None)
+            return
+
+        import random
+        winners = random.sample(self.entries, k=min(data["winners"], len(self.entries)))
+        winner_mentions = " ".join([f"<@{w}>" for w in winners])
+
+        await self.message.edit(
+            content=f"گیواوی تموم شد!\nبرنده(ها): {winner_mentions}\nجایزه: **{data['prize']}**",
+            embed=None,
+            view=None
+        )
+        await self.message.reply(f"تبریک به برنده‌ها! {winner_mentions}")
+
+# ثبت دکمه بعد از ری‌استارت
+@bot.event
+async def on_ready():
+    print(f"بات {bot.user} آنلاین شد!")
+    await bot.change_presence(activity=discord.Game("connect irkings.top"))
+    bot.add_view(GiveawayView(86400, 1, "test"))  # برای دکمه‌های قدیمی
+
 # ——————————————————— آماده شدن بات ———————————————————
 @bot.event
 async def on_ready():
