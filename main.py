@@ -12,17 +12,6 @@ intents.message_content = True
 intents.members = True
 intents.guilds = True
 
-@bot.command(name="say")  # فقط اینو عوض کن
-@commands.has_permissions(administrator=True)
-async def say(ctx, *, text=None):
-    if not text:
-        return
-    try:
-        await ctx.message.delete()
-    except:
-        pass
-    await ctx.send(text, allowed_mentions=discord.AllowedMentions.none())
-    
 @bot.event
 async def on_ready():
     print(f"بات {bot.user} آنلاین شد!")
@@ -407,21 +396,17 @@ async def on_ready():
     activity = discord.Game(name="connect irkings.top")
     await bot.change_presence(status=discord.Status.online, activity=activity)
 
-@bot.command(name="msg")
+# دستور !say — هر متنی که بنویسی رو بات می‌فرسته (خام و بدون ریپلای)
+@bot.command(name="say")
 @commands.has_permissions(administrator=True)
-async def send_message(ctx, *, text=None):
-    # اگر چیزی ننوشت
+async def say(ctx, *, text=None):
     if not text:
-        return await ctx.send("`!msg متن دلخواه`")
-
-    # پیام خودت رو حذف کن (اختیاری — اگه نمی‌خوای حذف بشه این خط رو کامنت کن)
+        return
     try:
         await ctx.message.delete()
     except:
         pass
-
-    # پیام رو بفرست (کاملاً خام)
-    await ctx.send(text)
+    await ctx.send(text, allowed_mentions=discord.AllowedMentions.none())
 
 
 # ==================== Run ====================
